@@ -66,6 +66,7 @@
 #' @importFrom utils download.file
 #' @importFrom utils packageVersion
 #' @importFrom GenomeInfoDb genomeStyles
+#' @importFrom methods is
 #' @import org.Hs.eg.db
 #' @import org.Mm.eg.db
 #' @import org.Rn.eg.db
@@ -250,6 +251,7 @@ extract_anno <- function(raw_ref, org, db, removeTxVersion) {
                    "transcript_type",
                    "filler")
 
+    full_name <- NULL
     df <- data.frame(full_name = names(raw_ref)) %>%
       tidyr::separate(full_name, into = col_names, sep = "\\|")
     if (removeTxVersion) {

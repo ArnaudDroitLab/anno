@@ -1,9 +1,17 @@
 Package: anno
 Type: Package
-Title: What the Package Does (Title Case)
+Title: Download and clean references and prepare annotations
 Version: 0.1.0
-Author: Who wrote it
-Maintainer: The package maintainer <yourself@somewhere.net>
+Author: 
+    person(given = "Charles",
+           family = "Joly",
+           role = c("aut", "cre"),
+           email = "Charles.Joly-Beauparlant@crchul.ulaval.ca")
+    person(given = "Lara",
+           family = "Herrmann",
+           role = c("aut", "cre"),
+           email = "Lara.Herrmann@crchul.ulaval.ca")
+Maintainer: The package maintainer <Charles.Joly-Beauparlant@crchul.ulaval.ca>
 Description: More about what it does (maybe more than one line)
     Use four spaces when indenting paragraphs within the Description.
 License: What license is it under?

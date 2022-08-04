@@ -4,57 +4,51 @@
 \alias{prepare_anno}
 \title{Download and clean ref and prepare anno}
 \usage{
-prepare_anno(
-  prefix,
-  org,
-  db,
-  release,
-  removeTxVersion = TRUE,
-  ERCC92 = FALSE,
-  force_download = FALSE
-)
+prepare_anno(org, db, release, ERCC92 = FALSE, force_download = FALSE)
 }
 \arguments{
-\item{prefix}{The prefix to be used for the files that will be produced.}
-
 \item{org}{The organism name. Currently accepted:
 * Homo sapiens (Ensembl and Gencode)
 * Mus musculus (Ensembl and Gencode)
 * Macaca mulatta (Ensembl only)
-* Rattus norvegicus (Ensembl only)}
+* Rattus norvegicus (Ensembl only)
+* Bos taurus (Ensembl only)}
 
 \item{db}{The database to use: Ensembl or Gencode}
 
 \item{release}{The version of the database to use. Must be greater than 100
 for Ensembl, 35 for Gencode Homo sapiens and 25 for Gencode Mus musculus.}
 
-\item{removeTxVersion}{Remove tx version? Default: TRUE.}
-
-\item{ERCC92}{Add ERCC92 sequence to reference and to anno? Default: TRUE}
+\item{ERCC92}{Add ERCC92 sequence to reference and to anno? Default: FALSE}
 
 \item{force_download}{Re-download raw reference if it is already present?
 Default: FALSE}
+
+\item{prefix}{The prefix to be used for the files that will be produced.}
 }
 \value{
-Invisibly returns a  \code{list} including the reference
-transcriptome as a the\code{DNAStringSet} object, the annotation, and the
-infos (metadata).
+Invisibly returns a \code{list} including the infos (metadata) of
+the following files : the <prefix>.raw_ref.fa.gz,
+<prefix>.no_alt_chr.fa.gz and <prefix>.protein_coding.fa.gz
 }
 \description{
 The goal of this function is to download the reference fasta file for a
 specific release of Ensembl or Gencode. The reference is then cleaned. We
 keep only the transcript id and we remove the transcript version by default.
-It is also possible to add ERCC92 sequences.
+It is also possible to add ERCC92 sequences. Reference files without the
+alternative chromosomes and only with the protein coding are also generated.
 }
 \details{
-After calling this function, a <prefix>.raw_ref.fa.gz file will be
-downloaded (if not already present) in the current working directory that
-corresponds to the raw reference file. There will also be a clean version of
-the transcriptome in the <prefix>.fa.gz format that will be different
-based on the parameter used to call the function. There will be a
-<prefix>.info that will contains metadata about the file download and the
-parameters used. Finally, there will be a <prefix>.csv that contains the
-annotation formated correctly for the rnaseq packages.
+#' After calling this function, a <prefix>.raw_ref.fa.gz file will be
+downloaded (if not already present) to the current working directory that
+corresponds to the raw reference file. There will also be a clean version,
+without alternative chromosomes in the format <prefix>.no_alt_chr.fa.gz.
+A <prefix>.protein_coding.fa.gz file is also generated, containing only the
+protein_coding genes.
+Finally, for all 3 fa.gz files, a <prefix>.info file and a <prefix>.csv
+file are created. The info file contains metadata about the file upload and
+the parameters used. The csv file contains the annotation formated correctly
+for the rnaseq packages.
 
 The <prefix>.info file contains the following columns:
    * prefix: The prefix of the file. Must match filename (i.e.: prefix of
@@ -62,8 +56,8 @@ The <prefix>.info file contains the following columns:
    * org: The organism name (i.e.: Homo sapiens)
    * db: Database where the annotation was downloaded.
    * release: The version of the database.
-   * rnaseq_pkg_version: The rnaseq package version, if the rnaseq package
-   was used to download the annotation.
+   * anno_pkg_version: The anno package version, if the anno package was
+   used to download the annotation.
    * download_date: The date the annotation was downloaded.
    * download_url: The URL that was used to download the annotation.
    * md5_raw_ref: md5sum of the raw transcriptome file.

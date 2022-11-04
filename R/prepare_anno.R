@@ -121,7 +121,12 @@ prepare_anno <- function(org, db, release, ERCC92 = FALSE,
   # Get cleaned ref
   ref_fasta <- raw_ref_fasta
   anno <- extract_anno(ref_fasta, org, db)
-  names(ref_fasta) <- stringr::str_extract(names(ref_fasta), "^ENS[^\\.]*")
+  clean_names <- stringr::str_extract(names(ref_fasta), "^ENS[^\\.]*")
+  # Stop if duplicated transcripts ID
+  if (length(clean_names) != length(unique(clean_names))){
+    stop("Duplicated transcripts in fasta")
+  }
+  names(ref_fasta) <- clean_names
 
   if (ERCC92) {
     ref_fasta <- add_ercc92_fasta(ref_fasta)

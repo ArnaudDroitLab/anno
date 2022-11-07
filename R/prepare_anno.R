@@ -120,7 +120,7 @@ prepare_anno <- function(org, db, release, ERCC92 = FALSE,
 
   # Get cleaned ref
   ref_fasta <- raw_ref_fasta
-  anno <- extract_anno(ref_fasta, org, db)
+  anno <- raw_ref_anno
   clean_names <- stringr::str_extract(names(ref_fasta), "^ENS[^\\.]*")
   # Stop if duplicated transcripts ID
   if (length(clean_names) != length(unique(clean_names))){
@@ -149,6 +149,10 @@ prepare_anno <- function(org, db, release, ERCC92 = FALSE,
       chromosomes <- names(ref_fasta) %>% str_extract("ARS-UCD1.[0-9]*:[^:]*") %>% str_extract("[^:]*$")
       std_chr <- c(1:29, "X", "Y", "MT")
     }
+    else if (org == "Rattus norvegicus" & db == "Ensembl" & release >= 105) {
+      chromosomes <- names(ref_fasta) %>% str_extract("primary_assembly:[^:]*:[^:]*") %>% str_extract("[^:]*$")
+      std_chr <- GenomeInfoDb::genomeStyles(org)$NCBI
+    }
     else {
       chromosomes <- names(ref_fasta) %>% str_extract("chromosome:[^:]*:[^:]*") %>% str_extract("[^:]*$")
       std_chr <- GenomeInfoDb::genomeStyles(org)$NCBI
@@ -156,9 +160,10 @@ prepare_anno <- function(org, db, release, ERCC92 = FALSE,
     ref_fasta <- ref_fasta[chromosomes %in% std_chr]
   }
   ref_fasta <- ref_fasta[BiocGenerics::width(ref_fasta) != 0]
-  anno <- extract_anno(ref_fasta, org, db)
-
+  # anno_ref <- extract_anno(ref_fasta, org, db)
   names(ref_fasta) <- stringr::str_extract(names(ref_fasta), "^ENS[^\\.]*")
+
+  anno <- raw_ref_anno %>% dplyr::filter(id %in% names(ref_fasta))
 
   if (ERCC92) {
     anno <- add_ercc92_anno(anno)
@@ -253,7 +258,11 @@ get_filename_and_url <- function(org, db, release) {
                   filename)
   }
   if (org == "Rattus norvegicus") {
-    filename <- "Rattus_norvegicus.Rnor_6.0.cdna.all.fa.gz"
+    if (release >= 105) {
+      filename <- "Rattus_norvegicus.mRatBN7.2.cdna.all.fa.gz"
+    } else {
+      filename <- "Rattus_norvegicus.Rnor_6.0.cdna.all.fa.gz"
+    }
     url <- paste0(base_url_ensembl, release, "/fasta/rattus_norvegicus/cdna/",
                   filename)
   }
@@ -352,8 +361,12 @@ save_anno_resuts <- function(ERCC92, prefix, ref_type, ref_fasta, anno){
     output_anno <- paste(prefix, ref_type, "csv", sep = ".")
   }
 
-  Biostrings::writeXStringSet(ref_fasta, output_ref_fasta, compress = TRUE)
-  csv <- readr::write_csv(anno, output_anno)
+  if (all(anno$id == names(ref_fasta)) & nrow(anno) == length(ref_fasta)) {
+    Biostrings::writeXStringSet(ref_fasta, output_ref_fasta, compress = TRUE)
+    csv <- readr::write_csv(anno, output_anno)
+  } else {
+    stop("Fasta and annotation IDs do not match")
+  }
 }
 
 save_info <- function(prefix, org, db, release, ERCC92, raw_ref_infos){

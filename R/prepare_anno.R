@@ -126,10 +126,6 @@ prepare_anno <- function(org, db, release, ERCC92 = FALSE,
                   method = "curl", extra = "-L")
   }
   raw_ref_fasta <- Biostrings::readDNAStringSet(raw_ref_filename)
-  if (any(BiocGenerics::width(raw_ref_fasta) != 0)) {
-    stop("0 length transcripts in fasta file")
-  }
-
   raw_ref_anno <- extract_anno(raw_ref_fasta, org, db)
 
   # Get cleaned ref
@@ -173,8 +169,9 @@ prepare_anno <- function(org, db, release, ERCC92 = FALSE,
     }
     ref_fasta <- ref_fasta[chromosomes %in% std_chr]
   }
-
+  ref_fasta <- ref_fasta[BiocGenerics::width(ref_fasta) != 0]
   names(ref_fasta) <- stringr::str_extract(names(ref_fasta), "^ENS[^\\.]*")
+
   anno <- raw_ref_anno %>% dplyr::filter(id %in% names(ref_fasta))
 
   if (ERCC92) {

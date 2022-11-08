@@ -44,6 +44,8 @@
 #' @param ERCC92 Add ERCC92 sequence to reference and to anno? Default: FALSE
 #' @param force_download Re-download raw reference if it is already present?
 #' Default: FALSE
+#' @param gtf Download the annotation corresponding to the fasta in gtf format?
+#' Default: FALSE
 #'
 #' @return Invisibly returns a \code{list} including the infos (metadata) of
 #' the following files : the <prefix>.raw_ref.fa.gz,
@@ -79,7 +81,7 @@
 #' @export
 
 prepare_anno <- function(org, db, release, ERCC92 = FALSE,
-                         force_download = FALSE) {
+                         force_download = FALSE, gtf = FALSE) {
 
   # Validate params
   stopifnot(org %in% c("Homo sapiens", "Mus musculus", "Macaca mulatta",
@@ -113,6 +115,13 @@ prepare_anno <- function(org, db, release, ERCC92 = FALSE,
   raw_ref_filename <- paste0(prefix, ".raw_ref.fa.gz")
   if (!file.exists(raw_ref_filename) | force_download) {
     download.file(raw_ref_infos$url, destfile = raw_ref_filename,
+                  method = "curl", extra = "-L")
+  }
+
+  gtf_filename <- paste0(prefix, ".gtf.gz")
+  if (gtf & (!file.exists(gtf_filename) | force_download)) {
+    gtf_url <- get_gtf_link(org, db, release)
+    download.file(gtf_url, destfile = gtf_filename,
                   method = "curl", extra = "-L")
   }
   raw_ref_fasta <- Biostrings::readDNAStringSet(raw_ref_filename)
@@ -160,7 +169,6 @@ prepare_anno <- function(org, db, release, ERCC92 = FALSE,
     ref_fasta <- ref_fasta[chromosomes %in% std_chr]
   }
   ref_fasta <- ref_fasta[BiocGenerics::width(ref_fasta) != 0]
-  # anno_ref <- extract_anno(ref_fasta, org, db)
   names(ref_fasta) <- stringr::str_extract(names(ref_fasta), "^ENS[^\\.]*")
 
   anno <- raw_ref_anno %>% dplyr::filter(id %in% names(ref_fasta))
@@ -391,4 +399,77 @@ save_info <- function(prefix, org, db, release, ERCC92, raw_ref_infos){
                      md5_protein_coding_anno = tools::md5sum(paste0(prefix, ".protein_coding.csv")))
   readr::write_csv(info, paste0(prefix, ".info"))
   info
+}
+
+# TODO créer une fonction pour télécharger le gtf
+get_gtf_link <- function(org, db, release){
+
+  stopifnot(org %in% c("Homo sapiens", "Mus musculus", "Macaca mulatta",
+                       "Rattus norvegicus", "Bos taurus"))
+
+  stopifnot(db %in% c("Ensembl", "Gencode"))
+  if (db == "Gencode") {
+    stopifnot(org %in% c("Homo sapiens", "Mus musculus"))
+  }
+
+  stopifnot(is.numeric(release))
+  if (db == "Ensembl") {
+    stopifnot(release >= 100)
+  }
+  if (db == "Gencode") {
+    if (org == "Homo sapiens") {
+      stopifnot(release >= 35)
+    }
+    if (org == "Mus musculus") {
+      stopifnot(release >= 25)
+    }
+  }
+
+  filename <- ""
+  url <- ""
+  url_ensembl <- paste0("http://ftp.ensembl.org/pub/release-", release, "/gtf/",
+                        gsub(" ", "_", stringr::str_to_lower(org)), "/")
+  url_gencode <- "http://ftp.ebi.ac.uk/pub/databases/gencode"
+
+  if (org == "Homo sapiens") {
+    if (db == "Ensembl") {
+      filename <- paste0("Homo_sapiens.GRCh38.", release, ".gtf.gz")
+      url <- paste0(url_ensembl, filename)
+    } else {
+      filename <- paste0("gencode.v", release, ".annotation.gtf.gz")
+      url <- paste0(url_gencode, "/Gencode_human/release_",
+                    release, "/", filename)
+    }
+  }
+  if (org == "Mus musculus") {
+    if (db == "Ensembl") {
+      if (release < 103) {
+        filename <- paste0("Mus_musculus.GRCm38.", release, ".gtf.gz")
+      } else {
+        filename <- paste0("Mus_musculus.GRCm39.", release, ".gtf.gz")
+      }
+      url <- paste0(url_ensembl, filename)
+    } else {
+      filename <- paste0("gencode.vM", release, "annotation.gtf.gz")
+      url <- paste0(url_gencode, "/Gencode_mouse/release_M",
+                    release, "/", filename)
+    }
+  }
+  if (org == "Macaca mulatta") {
+    filename <- paste0("Macaca_mulatta.Mmul_10.", release, ".gtf.gz")
+    url <- paste0(url_ensembl, filename)
+  }
+  if (org == "Rattus norvegicus") {
+    if (release >= 105) {
+      filename <-  paste0("Rattus_norvegicus.mRatBN7.2.", release, ".gtf.gz")
+    } else {
+      filename <-  paste0("Rattus_norvegicus.Rnor_6.0.", release, ".gtf.gz")
+    }
+    url <- paste0(url_ensembl, filename)
+  }
+  if (org == "Bos taurus") {
+    filename <- paste0("Bos_taurus.ARS-UCD1.2.", release, ".gtf.gz")
+    url <- paste0(url_ensembl, filename)
+  }
+  url
 }

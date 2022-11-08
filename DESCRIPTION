@@ -1,7 +1,7 @@
 Package: anno
 Type: Package
 Title: Download and clean references and prepare annotations
-Version: 0.1.4
+Version: 0.1.5
 Author: 
     person(given = "Charles",
            family = "Joly",
@@ -11,6 +11,10 @@ Author:
            family = "Herrmann",
            role = c("aut", "cre"),
            email = "Lara.Herrmann@crchul.ulaval.ca")
+    person(given = "Emeric",
+           family = "Texeraud",
+           role = c("aut", "cre"),
+           email = "emeric.texeraud@crchudequebec.ulaval.ca")
 Maintainer: The package maintainer <Charles.Joly-Beauparlant@crchul.ulaval.ca>
 Description: More about what it does (maybe more than one line)
     Use four spaces when indenting paragraphs within the Description.

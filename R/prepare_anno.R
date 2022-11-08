@@ -46,6 +46,7 @@
 #' Default: FALSE
 #' @param gtf Download the annotation corresponding to the fasta in gtf format?
 #' Default: FALSE
+#' @param outdir Directory in which to save the files. Default : "."
 #'
 #' @return Invisibly returns a \code{list} including the infos (metadata) of
 #' the following files : the <prefix>.raw_ref.fa.gz,
@@ -81,7 +82,7 @@
 #' @export
 
 prepare_anno <- function(org, db, release, ERCC92 = FALSE,
-                         force_download = FALSE, gtf = FALSE) {
+                         force_download = FALSE, gtf = FALSE, outdir = ".") {
 
   # Validate params
   stopifnot(org %in% c("Homo sapiens", "Mus musculus", "Macaca mulatta",
@@ -109,7 +110,7 @@ prepare_anno <- function(org, db, release, ERCC92 = FALSE,
   stopifnot(is.logical(force_download))
 
   # Download raw ref file
-  prefix <- get_prefix(org, db, release)
+  prefix <- get_prefix(org, db, release, outdir)
 
   raw_ref_infos <- get_filename_and_url(org, db, release)
   raw_ref_filename <- paste0(prefix, ".raw_ref.fa.gz")
@@ -198,13 +199,13 @@ prepare_anno <- function(org, db, release, ERCC92 = FALSE,
   info
 }
 
-get_prefix <- function(org, db, release){
+get_prefix <- function(org, db, release, outdir){
   if (org == "Homo sapiens") {prefix <- paste0("Hs.", db, release)}
   if (org == "Mus musculus") {prefix <- paste0("Mm.", db, release)}
   if (org == "Macaca mulatta") {prefix <- paste0("Mmu.", db, release)}
   if (org == "Rattus norvegicus") {prefix <- paste0("Rn.", db, release)}
   if (org == "Bos taurus") {prefix <- paste0("Bt.", db, release)}
-  prefix
+  paste(outdir, prefix, sep = "/")
 }
 
 get_filename_and_url <- function(org, db, release) {
@@ -450,7 +451,7 @@ get_gtf_link <- function(org, db, release){
       }
       url <- paste0(url_ensembl, filename)
     } else {
-      filename <- paste0("gencode.vM", release, "annotation.gtf.gz")
+      filename <- paste0("gencode.vM", release, ".annotation.gtf.gz")
       url <- paste0(url_gencode, "/Gencode_mouse/release_M",
                     release, "/", filename)
     }

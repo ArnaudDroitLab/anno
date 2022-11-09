@@ -4,7 +4,15 @@
 \alias{prepare_anno}
 \title{Download and clean ref and prepare anno}
 \usage{
-prepare_anno(org, db, release, ERCC92 = FALSE, force_download = FALSE)
+prepare_anno(
+  org,
+  db,
+  release,
+  ERCC92 = FALSE,
+  force_download = FALSE,
+  gtf = FALSE,
+  outdir = "."
+)
 }
 \arguments{
 \item{org}{The organism name. Currently accepted:
@@ -23,6 +31,11 @@ for Ensembl, 35 for Gencode Homo sapiens and 25 for Gencode Mus musculus.}
 
 \item{force_download}{Re-download raw reference if it is already present?
 Default: FALSE}
+
+\item{gtf}{Download the annotation corresponding to the fasta in gtf format?
+Default: FALSE}
+
+\item{outdir}{Directory in which to save the files. Default : "."}
 
 \item{prefix}{The prefix to be used for the files that will be produced.}
 }

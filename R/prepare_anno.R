@@ -400,7 +400,8 @@ save_info <- function(prefix, org, db, release, ERCC92, raw_ref_infos){
                      md5_protein_coding_ref = tools::md5sum(paste0(prefix, ".protein_coding.fa.gz")),
                      md5_cleaned_raw_anno = tools::md5sum(paste0(prefix, ".cleaned_ref.csv")),
                      md5_no_alt_chr_anno = tools::md5sum(paste0(prefix, ".no_alt_chr.csv")),
-                     md5_protein_coding_anno = tools::md5sum(paste0(prefix, ".protein_coding.csv")))
+                     md5_protein_coding_anno = tools::md5sum(paste0(prefix, ".protein_coding.csv")),
+                     md5_gtf = tools::md5sum(paste0(prefix,".gtf.gz")))
   readr::write_csv(info, paste0(prefix, ".info"))
   info
 }

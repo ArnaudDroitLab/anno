@@ -1,7 +1,7 @@
 Package: anno
 Type: Package
 Title: Download and clean references and prepare annotations
-Version: 0.1.7
+Version: 0.1.8
 Author: 
     person(given = "Charles",
            family = "Joly",
@@ -36,3 +36,7 @@ Imports:
     readr,
     stringr,
     tidyr
+Suggests: 
+    knitr,
+    rmarkdown
+VignetteBuilder: knitr

@@ -140,7 +140,12 @@ prepare_anno <- function(org, db, release = NA, ERCC92 = FALSE,
   # Get cleaned ref
   ref_fasta <- raw_ref_fasta
   anno <- raw_ref_anno
-  clean_names <- stringr::str_extract(names(ref_fasta), "^ENS[^\\.]*")
+  if (db == "Gencode") {
+    clean_names <- stringr::str_extract(names(ref_fasta), "^ENS[^\\|]*")
+    clean_names <- stringr::str_remove(clean_names, "\\.[0-9]*")
+  } else {
+    clean_names <- stringr::str_extract(names(ref_fasta), "^ENS[^\\.]*")
+  }
   # Stop if duplicated transcripts ID
   if (length(clean_names) != length(unique(clean_names))){
     stop("Duplicated transcripts in fasta")
@@ -191,7 +196,8 @@ prepare_anno <- function(org, db, release = NA, ERCC92 = FALSE,
 
   # Get ref with only protein_coding genes
   ref_fasta <- raw_ref_fasta[BiocGenerics::width(raw_ref_fasta) != 0]
-  names(ref_fasta) <- stringr::str_extract(names(ref_fasta), "^ENS[^\\.]*")
+
+  names(ref_fasta) <- clean_names
 
   i <- raw_ref_anno$transcript_type == "protein_coding"
   anno <- raw_ref_anno[i,]
@@ -308,7 +314,7 @@ extract_anno <- function(raw_ref, org, db) {
     full_name <- NULL
     df <- data.frame(full_name = names(raw_ref)) %>%
       tidyr::separate(full_name, into = col_names, sep = "\\|") %>%
-      dplyr::mutate(id = stringr::str_replace(id, "\\..*$", ""),
+      dplyr::mutate(id = stringr::str_replace(id, "\\.[0-9]*", ""),
                     ensembl_gene = stringr::str_replace(ensembl_gene, "\\..*$", ""))
     if (org == "Homo sapiens") org_db <- org.Hs.eg.db
     if (org == "Mus musculus") org_db <- org.Mm.eg.db

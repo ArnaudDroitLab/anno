@@ -73,6 +73,7 @@
 #' @importFrom utils packageVersion
 #' @importFrom GenomeInfoDb genomeStyles
 #' @importFrom methods is
+#' @importFrom XML getHTMLLinks
 #' @import org.Hs.eg.db
 #' @import org.Mm.eg.db
 #' @import org.Rn.eg.db
@@ -81,7 +82,7 @@
 #'
 #' @export
 
-prepare_anno <- function(org, db, release, ERCC92 = FALSE,
+prepare_anno <- function(org, db, release = NA, ERCC92 = FALSE,
                          force_download = FALSE, gtf = FALSE, outdir = ".") {
 
   # Validate params
@@ -93,16 +94,20 @@ prepare_anno <- function(org, db, release, ERCC92 = FALSE,
     stopifnot(org %in% c("Homo sapiens", "Mus musculus"))
   }
 
-  stopifnot(is.numeric(release))
-  if (db == "Ensembl") {
-    stopifnot(release >= 100)
-  }
-  if (db == "Gencode") {
-    if (org == "Homo sapiens") {
-      stopifnot(release >= 35)
+  if (is.na(release)) {
+    release <- fetch_latest_release(org, db)
+  } else {
+    stopifnot(is.numeric(release))
+    if (db == "Ensembl") {
+      stopifnot(release >= 100)
     }
-    if (org == "Mus musculus") {
-      stopifnot(release >= 25)
+    if (db == "Gencode") {
+      if (org == "Homo sapiens") {
+        stopifnot(release >= 35)
+      }
+      if (org == "Mus musculus") {
+        stopifnot(release >= 25)
+      }
     }
   }
 
@@ -477,4 +482,20 @@ get_gtf_link <- function(org, db, release){
     url <- paste0(url_ensembl, filename)
   }
   url
+}
+
+fetch_latest_release <- function(org, db){
+  if (db == "Gencode") {
+    if (org == "Homo sapiens") {
+      versions = XML::getHTMLLinks("http://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/", xpQuery = "//a/@href[contains(., 'release_')]")
+      versions = as.integer(gsub("[^0-9]*", "", versions))
+    } else {
+      versions = XML::getHTMLLinks("http://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_mouse/", xpQuery = "//a/@href[contains(., 'release_M')]")
+      versions = as.integer(gsub("[^0-9]*", "", versions))
+    }
+  } else {
+    versions = XML::getHTMLLinks("http://ftp.ensembl.org/pub/", xpQuery = "//a/@href[contains(., 'release-')]")
+    versions = as.integer(gsub("[^0-9]*", "", versions))
+  }
+  max(versions)
 }

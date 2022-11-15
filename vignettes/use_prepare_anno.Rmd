@@ -1,0 +1,122 @@
+---
+title: "How to use the anno package"
+date: "`r Sys.Date()`"
+output: 
+  rmarkdown::html_vignette:
+    toc: true
+vignette: >
+  %\VignetteIndexEntry{use_prepare_anno}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+
+This package and the underlying code are distributed under the MIT license. You are free to use and redistribute this software as you wish.
+
+# Introduction
+
+The goal of the anno package is to provide a unified set of annotations that can be used seemlessly at the various steps of a typical RNA-Seq analysis with kallisto, tximport and DESeq2.
+
+While the transcriptome fasta file could be used as is for a kallisto analysis, you would still have to prepare a table giving the correspondances of the transcript ids to their gene ids. This file is not provided by either Ensembl and Gencode and would have to be prepared by each user.
+
+The anno package not only provides a correctly pre-formated transcript id to gene id table, it also includes multiple extra annotation that can be added directly in the results produced with the [rnaseq package](https://www.github.com/charlesjb/rnaseq).
+
+Finally, the anno package provides multiple subsets of the original datasets and corresponding annotations, notably a dataset containing only gene located on standard chromosomes or protein coding genes.
+
+```{r setup, eval=FALSE}
+library(anno)
+```
+
+# Main function
+
+The main function is called `prepare_anno` and does all the downloading, formatting and filtering. It results in saving 8 or 9 files that will be detailed later.
+
+## How to use this function
+
+`prepare_anno` has several parameters used to control what to download and how to format the data. Here are all the parameters : 
+
+|Parameter| Default | Description|
+|---------|:----------:|-------------------------------------------------------|
+|org|  |The organism for which to prepare the reference ("Mus musculus", "Homo sapiens").|
+|db|  |The database where the fasta should be taken from ("Gencode", "Ensembl").|
+|release| NA |The version of the database to take the data from (31 for Gencode, 105 for Ensembl).|
+|ERCC92| FALSE |Adds the ERCC92 sequence that comes with the package.|
+|force_download| FALSE |Forces the download even if the files to download are already found in the directory.|
+|gtf| FALSE |Downloads the gtf annotation file (not mandatory).|
+|outdir| "." |The directory where the files will be saved.|
+
+By default, ERCC92 is not added, files are not downloaded if they already exist, but filtered files will still be produced, the gtf is not downloaded and the files are saved in the current directory.
+
+Here is an example for the mouse in Ensembl db version 108, with all default parameters
+```{r , eval=FALSE}
+prepare_anno(org = "Mus musculus", db = "Ensembl", release = 108)
+```
+
+This will create 8 saved files in the current directory. As a bonus, the function returns a summary of the parameters and the md5sum of each file.
+
+Here is another example of a call for this function for the human in Gencode version 42, adding ERCC92 sequence, redownloading every file even if they are already present, downloading the gtf and changing the output directory.
+```{r , eval=FALSE}
+prepare_anno(org = "Homo sapiens", db = "Gencode", release = 42, ERCC92 = TRUE, force_download = TRUE, gtf = TRUE, outdir = "./human_genome")
+```
+
+## Outputs
+
+The function `prepare_anno` saves 8 files to disk with default parameters and a 9th file with `gtf = TRUE`. They will all begin with a prefix containing the organism with a 2-3 letter code (Hs for Homo sapiens, Mmu for Macacca mulatta...) followed by the database and release version used (i.e.: Mm.Ensembl108). 
+
+|file name| Description|
+|---------|-------------------------------------------------------|
+|prefix.raw_ref.fa.gz|The raw fasta file, containing each transcripts with its ensembl ID, name and description, followed by the transcript sequence.|
+|prefix.gtf.gz|The gtf annotation file, only generated when `gtf = TRUE`. More information on the gtf format on the [Ensembl website](https://useast.ensembl.org/info/website/upload/gff.html).|
+|prefix.cleaned_ref.fa.gz|The cleaned fasta file. It contains the same sequences as the raw fasta file, but the name of the sequences now just contains the ensembl ID of the transcript, without the version.|
+|prefix.cleaned_ref.csv|One line for each transcript in the cleaned fasta. Each line is composed of those columns: the transcript ID, ensembl ID for the gene corresponding to this transcript, gene name, entrez ID of the gene and transcript type.|
+|prefix.no_alt_chr.fa.gz|Contains the same names as the cleaned fasta, but without the transcripts on alternative chromosomes.|
+|prefix.no_alt_chr.csv|Describe the no alternative chromosome fasta file. Same format as the cleaned ref.|
+|prefix.protein_coding.fa.gz|Same as the cleaned fasta file, but only contains protein coding transcripts.|
+|prefix.protein_coding.csv|Describe the protein coding fasta file. Same format as the cleaned ref.|
+|prefix.info|summary of the arguments used, and the md5sum for every file written to disk.|
+
+The following columns can be found in each csv description file
+
+|Column name| Description|
+|---------|-------------------------------------------------------|
+|id|The transcript id corresponding to one of the transcript in the fasta file (ENSMUST00000162897, ENSMUST00000195335).|
+|ensembl_gene|The Ensembl id of the gene this transcript corresponds to (ENSMUSG00000051951, ENSMUSG00000103377).|
+|symbol|The gene symbol (gene name) corresponding to the ensembl id (Xkr4, Gm37180).|
+|entrez_id|The entrez id of the gene (115487594, 497097)|
+|transcript_type|The type of transcript (protein_coding, snRNA)|
+
+The following columns are in the info file
+
+|Column name| Description|
+|---------|-------------------------------------------------------|
+|prefix|The prefix that appears in the beginning of each file name.|
+|org|The organism used.|
+|db|The database from which the fasta and gtf are downloaded.|
+|release|The version number of the database.|
+|ERCC92|Whether the ERCC92 sequence was added.|
+|anno_pkg_version|The version of the anno package used.|
+|download_date|The date of the package usage.|
+|download_url|The URL of the downloaded fasta.|
+|md5_raw_ref|The md5sum of the raw fasta.|
+|md5_cleaned_raw_ref|The md5sum of the cleaned fasta.|
+|md5_no_alt_chr_ref|The md5sum of the no alternative chromosomes fasta.|
+|md5_protein_coding_ref|The md5sum of the protein coding fasta.|
+|md5_cleaned_raw_anno|The md5sum of the cleaned csv.|
+|md5_no_alt_chr_anno|The md5sum of the no alt chromosome csv.|
+|md5_protein_coding_anno|The md5sum of the protein coding csv.|
+|md5_gtf|The md5sum of the gtf annotation file.|
+
+<br></br>
+<br></br>
+
+*If you have any issue or improvement idea, feel free to create an issue on the [anno github](https://github.com/CharlesJB/anno/issues).*
+
+
+

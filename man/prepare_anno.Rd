@@ -6,8 +6,8 @@
 \usage{
 prepare_anno(
   org,
-  db,
-  release,
+  db = "Ensembl",
+  release = NA,
   ERCC92 = FALSE,
   force_download = FALSE,
   gtf = FALSE,
@@ -22,10 +22,11 @@ prepare_anno(
 * Rattus norvegicus (Ensembl only)
 * Bos taurus (Ensembl only)}
 
-\item{db}{The database to use: Ensembl or Gencode}
+\item{db}{The database to use: Ensembl or Gencode. Default: "Ensembl"}
 
 \item{release}{The version of the database to use. Must be greater than 100
-for Ensembl, 35 for Gencode Homo sapiens and 25 for Gencode Mus musculus.}
+for Ensembl, 35 for Gencode Homo sapiens and 25 for Gencode Mus musculus.
+Default: NA}
 
 \item{ERCC92}{Add ERCC92 sequence to reference and to anno? Default: FALSE}
 
@@ -36,13 +37,10 @@ Default: FALSE}
 Default: FALSE}
 
 \item{outdir}{Directory in which to save the files. Default : "."}
-
-\item{prefix}{The prefix to be used for the files that will be produced.}
 }
 \value{
-Invisibly returns a \code{list} including the infos (metadata) of
-the following files : the <prefix>.raw_ref.fa.gz,
-<prefix>.no_alt_chr.fa.gz and <prefix>.protein_coding.fa.gz
+Returns a \code{list} including every information in the
+<prefix>.info file.
 }
 \description{
 The goal of this function is to download the reference fasta file for a
@@ -58,10 +56,10 @@ corresponds to the raw reference file. There will also be a clean version,
 without alternative chromosomes in the format <prefix>.no_alt_chr.fa.gz.
 A <prefix>.protein_coding.fa.gz file is also generated, containing only the
 protein_coding genes.
-Finally, for all 3 fa.gz files, a <prefix>.info file and a <prefix>.csv
-file are created. The info file contains metadata about the file upload and
-the parameters used. The csv file contains the annotation formated correctly
-for the rnaseq packages.
+Finally, for all 3 fa.gz files, a <prefix>.csv file is created. The csv
+file contains the annotation formated correctly for the rnaseq packages.
+Finally, a <prefix>.info file is created. This file contains metadata about
+every file and the parameters used.
 
 The <prefix>.info file contains the following columns:
    * prefix: The prefix of the file. Must match filename (i.e.: prefix of
@@ -69,13 +67,11 @@ The <prefix>.info file contains the following columns:
    * org: The organism name (i.e.: Homo sapiens)
    * db: Database where the annotation was downloaded.
    * release: The version of the database.
-   * anno_pkg_version: The anno package version, if the anno package was
-   used to download the annotation.
+   * ERCC92: The value of the ERCC92 argument.
+   * anno_pkg_version: The anno package version.
    * download_date: The date the annotation was downloaded.
    * download_url: The URL that was used to download the annotation.
-   * md5_raw_ref: md5sum of the raw transcriptome file.
-   * md5_clean_ref: md5sum of the cleaned transcriptome.
-   * md5_anno: md5sum of the annotation file.
+   * A md5sum for every file generated, one column per file.
 }
 \examples{
 \dontrun{

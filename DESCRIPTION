@@ -35,7 +35,8 @@ Imports:
     org.Rn.eg.db,
     readr,
     stringr,
-    tidyr
+    tidyr,
+    XML
 Suggests: 
     knitr,
     rmarkdown

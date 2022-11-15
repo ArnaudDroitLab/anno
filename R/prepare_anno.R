@@ -12,10 +12,10 @@
 #' without alternative chromosomes in the format <prefix>.no_alt_chr.fa.gz.
 #' A <prefix>.protein_coding.fa.gz file is also generated, containing only the
 #' protein_coding genes.
-#' Finally, for all 3 fa.gz files, a <prefix>.info file and a <prefix>.csv
-#' file are created. The info file contains metadata about the file upload and
-#' the parameters used. The csv file contains the annotation formated correctly
-#' for the rnaseq packages.
+#' Finally, for all 3 fa.gz files, a <prefix>.csv file is created. The csv
+#' file contains the annotation formated correctly for the rnaseq packages.
+#' Finally, a <prefix>.info file is created. This file contains metadata about
+#' every file and the parameters used.
 #'
 #' The <prefix>.info file contains the following columns:
 #'    * prefix: The prefix of the file. Must match filename (i.e.: prefix of
@@ -23,24 +23,22 @@
 #'    * org: The organism name (i.e.: Homo sapiens)
 #'    * db: Database where the annotation was downloaded.
 #'    * release: The version of the database.
-#'    * anno_pkg_version: The anno package version, if the anno package was
-#'    used to download the annotation.
+#'    * ERCC92: The value of the ERCC92 argument.
+#'    * anno_pkg_version: The anno package version.
 #'    * download_date: The date the annotation was downloaded.
 #'    * download_url: The URL that was used to download the annotation.
-#'    * md5_raw_ref: md5sum of the raw transcriptome file.
-#'    * md5_clean_ref: md5sum of the cleaned transcriptome.
-#'    * md5_anno: md5sum of the annotation file.
+#'    * A md5sum for every file generated, one column per file.
 #'
-#' @param prefix The prefix to be used for the files that will be produced.
 #' @param org The organism name. Currently accepted:
 #'                * Homo sapiens (Ensembl and Gencode)
 #'                * Mus musculus (Ensembl and Gencode)
 #'                * Macaca mulatta (Ensembl only)
 #'                * Rattus norvegicus (Ensembl only)
 #'                * Bos taurus (Ensembl only)
-#' @param db The database to use: Ensembl or Gencode
+#' @param db The database to use: Ensembl or Gencode. Default: "Ensembl"
 #' @param release The version of the database to use. Must be greater than 100
 #' for Ensembl, 35 for Gencode Homo sapiens and 25 for Gencode Mus musculus.
+#' Default: NA
 #' @param ERCC92 Add ERCC92 sequence to reference and to anno? Default: FALSE
 #' @param force_download Re-download raw reference if it is already present?
 #' Default: FALSE
@@ -48,9 +46,8 @@
 #' Default: FALSE
 #' @param outdir Directory in which to save the files. Default : "."
 #'
-#' @return Invisibly returns a \code{list} including the infos (metadata) of
-#' the following files : the <prefix>.raw_ref.fa.gz,
-#' <prefix>.no_alt_chr.fa.gz and <prefix>.protein_coding.fa.gz
+#' @return Returns a \code{list} including every information in the
+#' <prefix>.info file.
 #'
 #' @examples
 #' \dontrun{
@@ -82,7 +79,7 @@
 #'
 #' @export
 
-prepare_anno <- function(org, db, release = NA, ERCC92 = FALSE,
+prepare_anno <- function(org, db = "Ensembl", release = NA, ERCC92 = FALSE,
                          force_download = FALSE, gtf = FALSE, outdir = ".") {
 
   # Validate params
@@ -209,7 +206,7 @@ prepare_anno <- function(org, db, release = NA, ERCC92 = FALSE,
   }
   save_anno_resuts(ERCC92, prefix, "protein_coding", ref_fasta, anno)
 
-  info <- save_info(prefix, org, db, release, ERCC92, raw_ref_infos)
+  info <- save_info(prefix, org, db, release, ERCC92, raw_ref_infos, gtf)
   info
 }
 
@@ -392,7 +389,7 @@ save_anno_resuts <- function(ERCC92, prefix, ref_type, ref_fasta, anno){
   }
 }
 
-save_info <- function(prefix, org, db, release, ERCC92, raw_ref_infos){
+save_info <- function(prefix, org, db, release, ERCC92, raw_ref_infos, gtf){
   if (ERCC92){
     prefix <- paste(prefix, "ERCC92", sep = ".")
   }
@@ -411,8 +408,10 @@ save_info <- function(prefix, org, db, release, ERCC92, raw_ref_infos){
                      md5_protein_coding_ref = tools::md5sum(paste0(prefix, ".protein_coding.fa.gz")),
                      md5_cleaned_raw_anno = tools::md5sum(paste0(prefix, ".cleaned_ref.csv")),
                      md5_no_alt_chr_anno = tools::md5sum(paste0(prefix, ".no_alt_chr.csv")),
-                     md5_protein_coding_anno = tools::md5sum(paste0(prefix, ".protein_coding.csv")),
-                     md5_gtf = tools::md5sum(paste0(prefix,".gtf.gz")))
+                     md5_protein_coding_anno = tools::md5sum(paste0(prefix, ".protein_coding.csv")))
+  if (gtf) {
+    info$md5_gtf <- tools::md5sum(paste0(prefix,".gtf.gz"))
+  }
   readr::write_csv(info, paste0(prefix, ".info"))
   info
 }
@@ -493,10 +492,12 @@ get_gtf_link <- function(org, db, release){
 fetch_latest_release <- function(org, db){
   if (db == "Gencode") {
     if (org == "Homo sapiens") {
-      versions = XML::getHTMLLinks("http://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/", xpQuery = "//a/@href[contains(., 'release_')]")
+      versions = XML::getHTMLLinks("http://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/",
+                                   xpQuery = "//a/@href[contains(., 'release_')]")
       versions = as.integer(gsub("[^0-9]*", "", versions))
     } else {
-      versions = XML::getHTMLLinks("http://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_mouse/", xpQuery = "//a/@href[contains(., 'release_M')]")
+      versions = XML::getHTMLLinks("http://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_mouse/",
+                                   xpQuery = "//a/@href[contains(., 'release_M')]")
       versions = as.integer(gsub("[^0-9]*", "", versions))
     }
   } else {

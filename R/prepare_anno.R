@@ -83,33 +83,55 @@ prepare_anno <- function(org, db = "Ensembl", release = NA, ERCC92 = FALSE,
                          force_download = FALSE, gtf = FALSE, outdir = ".") {
 
   # Validate params
-  stopifnot(org %in% c("Homo sapiens", "Mus musculus", "Macaca mulatta",
-                       "Rattus norvegicus", "Bos taurus"))
+  if (!is.character(org)) {
+    stop("org must be a string and a supported organism")
+  } else if (!org %in% c("Homo sapiens", "Mus musculus", "Macaca mulatta",
+                         "Rattus norvegicus", "Bos taurus")) {
+    stop(paste0(org, " is an unsupported organism"))
+  }
 
-  stopifnot(db %in% c("Ensembl", "Gencode"))
-  if (db == "Gencode") {
-    stopifnot(org %in% c("Homo sapiens", "Mus musculus"))
+  if (!db %in% c("Ensembl", "Gencode")) {
+    stop("db must be either Ensembl or Gencode")
+  }
+  if (db == "Gencode" & !org %in% c("Homo sapiens", "Mus musculus")) {
+    stop("Gencode database only accepts Homo Sapiens and Mus musculus organisms")
   }
 
   if (is.na(release)) {
     release <- fetch_latest_release(org, db)
   } else {
-    stopifnot(is.numeric(release))
-    if (db == "Ensembl") {
-      stopifnot(release >= 100)
+    if (!is.numeric(release)) {
+      stop("release must be a number")
+    }
+    if (db == "Ensembl" & release < 100) {
+      stop("release must be >= 100 for Ensembl")
     }
     if (db == "Gencode") {
-      if (org == "Homo sapiens") {
-        stopifnot(release >= 35)
+      if (org == "Homo sapiens" & release < 35) {
+        stop("release must be >= 35 for Homo sapiens in Gencode")
       }
-      if (org == "Mus musculus") {
-        stopifnot(release >= 25)
+      if (org == "Mus musculus" & release < 25) {
+        stop("release must be >= 25 for Mus musculus in Gencode")
       }
     }
   }
 
-  stopifnot(is.logical(ERCC92))
-  stopifnot(is.logical(force_download))
+  if (!is.logical(ERCC92) | is.na(ERCC92)) {
+    stop("ERCC92 must be either TRUE or FALSE")
+  }
+  if (!is.logical(force_download) | is.na(force_download)) {
+    stop("force_download must be either TRUE or FALSE")
+  }
+  if (!is.logical(gtf) | is.na(gtf)) {
+    stop("gtf must be either TRUE or FALSE")
+  }
+  if (is.character(outdir)) {
+    if (!dir.exists(outdir)) {
+      stop("outdir must be a valid directory")
+    }
+  } else {
+    stop("outdir must be a string and a valid directory")
+  }
 
   # Download raw ref file
   prefix <- get_prefix(org, db, release, outdir)

@@ -1,7 +1,7 @@
 Package: anno
 Type: Package
 Title: Download and clean references and prepare annotations
-Version: 0.1.9
+Version: 0.1.10
 Author: 
     person(given = "Charles",
            family = "Joly",
@@ -39,5 +39,7 @@ Imports:
     XML
 Suggests: 
     knitr,
-    rmarkdown
+    rmarkdown,
+    testthat (>= 3.0.0)
 VignetteBuilder: knitr
+Config/testthat/edition: 3

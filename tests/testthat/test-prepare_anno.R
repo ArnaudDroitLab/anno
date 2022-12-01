@@ -1,3 +1,32 @@
+output_verification <- function(org, db, release, ERCC92 = FALSE, prefix) {
+  outdir = system.file(paste0("extdata/tests/", prefix), package = "anno")
+  prepare_anno(org, db, release, ERCC92, force_download = FALSE, gtf = FALSE,
+               outdir = outdir)
+  expect_equal(
+    unname(tools::md5sum(system.file(paste0("extdata/tests/", prefix, "/", prefix, ".cleaned_ref.fa.gz"), package = "anno"))),
+    unname(tools::md5sum(system.file(paste0("extdata/tests/reference/", prefix, ".cleaned_ref.fa.gz"), package = "anno"))))
+  expect_equal(
+    unname(tools::md5sum(system.file(paste0("extdata/tests/", prefix, "/", prefix, ".cleaned_ref.csv"), package = "anno"))),
+    unname(tools::md5sum(system.file(paste0("extdata/tests/reference/", prefix, ".cleaned_ref.csv"), package = "anno"))))
+  expect_equal(
+    unname(tools::md5sum(system.file(paste0("extdata/tests/", prefix, "/", prefix, ".no_alt_chr.fa.gz"), package = "anno"))),
+    unname(tools::md5sum(system.file(paste0("extdata/tests/reference/", prefix, ".no_alt_chr.fa.gz"), package = "anno"))))
+  expect_equal(
+    unname(tools::md5sum(system.file(paste0("extdata/tests/", prefix, "/", prefix, ".no_alt_chr.csv"), package = "anno"))),
+    unname(tools::md5sum(system.file(paste0("extdata/tests/reference/", prefix, ".no_alt_chr.csv"), package = "anno"))))
+  expect_equal(
+    unname(tools::md5sum(system.file(paste0("extdata/tests/", prefix, "/", prefix, ".protein_coding.fa.gz"), package = "anno"))),
+    unname(tools::md5sum(system.file(paste0("extdata/tests/reference/", prefix, ".protein_coding.fa.gz"), package = "anno"))))
+  expect_equal(
+    unname(tools::md5sum(system.file(paste0("extdata/tests/", prefix, "/", prefix, ".protein_coding.csv"), package = "anno"))),
+    unname(tools::md5sum(system.file(paste0("extdata/tests/reference/", prefix, ".protein_coding.csv"), package = "anno"))))
+  files <- list.files(system.file(paste0("extdata/tests/", prefix, "/"), package = "anno"))
+  files <- grep("raw_ref", files, invert = TRUE, value = TRUE)
+  file.remove(paste(outdir, files, sep = "/"))
+
+}
+
+
 test_that("Arguments checking works", {
   valid_org <- "Mus musculus"
   msg <- "org must be a string and a supported organism"
@@ -31,6 +60,7 @@ test_that("Arguments checking works", {
   expect_error(prepare_anno(org = valid_org, outdir = 123), msg)
   msg <- "outdir must be a valid directory"
   expect_error(prepare_anno(org = valid_org, outdir = "Abracadabra"), msg)
+
 })
 
 # Mus musculus Ensembl 10000 will be used with download = FALSE because it is a
@@ -41,6 +71,8 @@ test_that("0 length transcripts checking works", {
                            outdir = system.file("extdata/tests/error", package = "anno")), msg)
 })
 
+# release too high verify error
+
 # Mus musculus Ensembl 10001 will be used with download = FALSE because it is a
 # manually generated file with duplicated transcripts in it
 test_that("Duplicated transcripts checking works", {
@@ -49,9 +81,45 @@ test_that("Duplicated transcripts checking works", {
                             outdir = system.file("extdata/tests/error", package = "anno")), msg)
 })
 
-# Verify each organism (Homo sapiens, Rattus norvegicus, Bos Taurus, Mus musculus, Macaca mulatta)
-# with last version (108) of Ensembl, mouse < 103, rat < 105, mouse Gencode, human Gencode
-# Verify last version (108 for Ensembl, 42 for Homo sapiens Gencode, 31 for Mus musculus Gencode)
-# Need to change last version test each time there is a new version
-# Unable to test Fasta and annotation ID that do not match because of implementation
-# Test addition of ERCC92
+# verify getting last release
+
+test_that("Hs Ensembl 108 works", {
+  output_verification("Homo sapiens", "Ensembl", 108, FALSE, "Hs.Ensembl108")
+})
+
+test_that("Mm Ensembl 102 works", {
+  output_verification("Mus musculus", "Ensembl", 102, FALSE, "Mm.Ensembl102")
+})
+
+test_that("Mm Ensembl 108 works", {
+  output_verification("Mus musculus", "Ensembl", 108, FALSE, "Mm.Ensembl108")
+})
+
+test_that("Mmu Ensembl 108 works", {
+  output_verification("Macaca mulatta", "Ensembl", 108, FALSE, "Mmu.Ensembl108")
+})
+
+test_that("Rn Ensembl 102 works", {
+  output_verification("Rattus norvegicus", "Ensembl", 102, FALSE, "Rn.Ensembl102")
+})
+
+test_that("Rn Ensembl 108 works", {
+  output_verification("Rattus norvegicus", "Ensembl", 108, FALSE, "Rn.Ensembl108")
+})
+
+test_that("Bt Ensembl 108 works", {
+  output_verification("Bos taurus", "Ensembl", 108, FALSE, "Bt.Ensembl108")
+})
+
+test_that("Mm Gencode 31 works", {
+  output_verification("Mus musculus", "Gencode", 31, FALSE, "Mm.Gencode31")
+})
+
+test_that("Hs Gencode 42 works", {
+  output_verification("Homo sapiens", "Gencode", 42, FALSE, "Hs.Gencode42")
+})
+
+# R compression does not give the same md5sum for ERCC92 and human 108 than bash compression
+# test_that("Hs Ensembl 108 with ERCC92 works", {
+#   output_verification("Homo sapiens", "Ensembl", 108, TRUE, "Hs.Ensembl108.ERCC92")
+# })

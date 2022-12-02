@@ -3,27 +3,27 @@ output_verification <- function(org, db, release, ERCC92 = FALSE, prefix) {
   prepare_anno(org, db, release, ERCC92, force_download = FALSE, gtf = FALSE,
                outdir = outdir)
   expect_equal(
-    unname(tools::md5sum(system.file(paste0("extdata/tests/", prefix, "/", prefix, ".cleaned_ref.fa.gz"), package = "anno"))),
-    unname(tools::md5sum(system.file(paste0("extdata/tests/reference/", prefix, ".cleaned_ref.fa.gz"), package = "anno"))))
+    Biostrings::readDNAStringSet(system.file(paste0("extdata/tests/", prefix, "/", prefix, ".cleaned_ref.fa.gz"), package = "anno")),
+    Biostrings::readDNAStringSet(system.file(paste0("extdata/tests/reference/", prefix, ".cleaned_ref.fa.gz"), package = "anno")))
   expect_equal(
-    unname(tools::md5sum(system.file(paste0("extdata/tests/", prefix, "/", prefix, ".cleaned_ref.csv"), package = "anno"))),
-    unname(tools::md5sum(system.file(paste0("extdata/tests/reference/", prefix, ".cleaned_ref.csv"), package = "anno"))))
+    read.csv(system.file(paste0("extdata/tests/", prefix, "/", prefix, ".cleaned_ref.csv"), package = "anno")),
+    read.csv(system.file(paste0("extdata/tests/reference/", prefix, ".cleaned_ref.csv"), package = "anno")))
   expect_equal(
-    unname(tools::md5sum(system.file(paste0("extdata/tests/", prefix, "/", prefix, ".no_alt_chr.fa.gz"), package = "anno"))),
-    unname(tools::md5sum(system.file(paste0("extdata/tests/reference/", prefix, ".no_alt_chr.fa.gz"), package = "anno"))))
+    Biostrings::readDNAStringSet(system.file(paste0("extdata/tests/", prefix, "/", prefix, ".no_alt_chr.fa.gz"), package = "anno")),
+    Biostrings::readDNAStringSet(system.file(paste0("extdata/tests/reference/", prefix, ".no_alt_chr.fa.gz"), package = "anno")))
   expect_equal(
-    unname(tools::md5sum(system.file(paste0("extdata/tests/", prefix, "/", prefix, ".no_alt_chr.csv"), package = "anno"))),
-    unname(tools::md5sum(system.file(paste0("extdata/tests/reference/", prefix, ".no_alt_chr.csv"), package = "anno"))))
+    read.csv(system.file(paste0("extdata/tests/", prefix, "/", prefix, ".no_alt_chr.csv"), package = "anno")),
+    read.csv(system.file(paste0("extdata/tests/reference/", prefix, ".no_alt_chr.csv"), package = "anno")))
   expect_equal(
-    unname(tools::md5sum(system.file(paste0("extdata/tests/", prefix, "/", prefix, ".protein_coding.fa.gz"), package = "anno"))),
-    unname(tools::md5sum(system.file(paste0("extdata/tests/reference/", prefix, ".protein_coding.fa.gz"), package = "anno"))))
+    Biostrings::readDNAStringSet(system.file(paste0("extdata/tests/", prefix, "/", prefix, ".protein_coding.fa.gz"), package = "anno")),
+    Biostrings::readDNAStringSet(system.file(paste0("extdata/tests/reference/", prefix, ".protein_coding.fa.gz"), package = "anno")))
   expect_equal(
-    unname(tools::md5sum(system.file(paste0("extdata/tests/", prefix, "/", prefix, ".protein_coding.csv"), package = "anno"))),
-    unname(tools::md5sum(system.file(paste0("extdata/tests/reference/", prefix, ".protein_coding.csv"), package = "anno"))))
+    read.csv(system.file(paste0("extdata/tests/", prefix, "/", prefix, ".protein_coding.csv"), package = "anno")),
+    read.csv(system.file(paste0("extdata/tests/reference/", prefix, ".protein_coding.csv"), package = "anno")))
+  closeAllConnections()
   files <- list.files(system.file(paste0("extdata/tests/", prefix, "/"), package = "anno"))
   files <- grep("raw_ref", files, invert = TRUE, value = TRUE)
   file.remove(paste(outdir, files, sep = "/"))
-
 }
 
 

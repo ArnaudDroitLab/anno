@@ -2,22 +2,20 @@ Package: anno
 Type: Package
 Title: Download and clean references and prepare annotations
 Version: 0.1.11
-Author: 
-    person(given = "Charles",
-           family = "Joly",
-           role = c("aut", "cre"),
-           email = "Charles.Joly-Beauparlant@crchul.ulaval.ca")
-    person(given = "Lara",
-           family = "Herrmann",
-           role = c("aut", "cre"),
-           email = "Lara.Herrmann@crchul.ulaval.ca")
-    person(given = "Emeric",
-           family = "Texeraud",
-           role = c("aut", "cre"),
-           email = "emeric.texeraud@crchudequebec.ulaval.ca")
-Maintainer: The package maintainer <Charles.Joly-Beauparlant@crchul.ulaval.ca>
-Description: More about what it does (maybe more than one line)
-    Use four spaces when indenting paragraphs within the Description.
+Authors@R:
+  person("Charles",
+         "Joly",
+         role = c("aut", "cre"),
+         email = "Charles.Joly-Beauparlant@crchul.ulaval.ca")
+  person("Lara",
+         "Herrmann",
+         role = c("aut", "cre"),
+         email = "Lara.Herrmann@crchul.ulaval.ca")
+  person("Emeric",
+         "Texeraud",
+         role = c("aut", "cre"),
+         email = "emeric.texeraud@crchudequebec.ulaval.ca")
+Description: The goal of this function is to download the reference fasta file for a specific release of Ensembl or Gencode. The reference is then cleaned. We keep only the transcript id and we remove the transcript version by default. It is also possible to add ERCC92 sequences. Reference files without the alternative chromosomes and only with the protein coding are also generated.
 License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
@@ -33,6 +31,7 @@ Imports:
     org.Mm.eg.db,
     org.Mmu.eg.db,
     org.Rn.eg.db,
+    org.Bt.eg.db,
     readr,
     stringr,
     tidyr,

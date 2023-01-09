@@ -119,7 +119,6 @@ test_that("Hs Gencode 42 works", {
   output_verification("Homo sapiens", "Gencode", 42, FALSE, "Hs.Gencode42")
 })
 
-# R compression does not give the same md5sum for ERCC92 and human 108 than bash compression
-# test_that("Hs Ensembl 108 with ERCC92 works", {
-#   output_verification("Homo sapiens", "Ensembl", 108, TRUE, "Hs.Ensembl108.ERCC92")
-# })
+test_that("Hs Ensembl 108 with ERCC92 works", {
+  output_verification("Homo sapiens", "Ensembl", 108, TRUE, "Hs.Ensembl108.ERCC92")
+})

@@ -85,8 +85,17 @@ prepare_anno <- function(org, db = "Ensembl", release = NA, ERCC92 = FALSE,
   # Validate params
   if (!is.character(org)) {
     stop("org must be a string and a supported organism")
-  } else if (!org %in% c("Homo sapiens", "Mus musculus", "Macaca mulatta",
-                         "Rattus norvegicus", "Bos taurus")) {
+  } else if (tolower(org) %in% c("homo sapiens", "human", "grch38", "hg38", "hs", "h. sapiens")) {
+    org = "Homo sapiens"
+  } else if (tolower(org) %in% c("mus musculus", "mouse", "grcm38", "mm10", "mm", "grcm39", "mm39", "m. musculus")) {
+    org = "Mus musculus"
+  } else if (tolower(org) %in% c("macaca mulatta", "rhesus monkey", "mmul_10", "rhemac10", "mmu", "m. mulatta")) {
+    org = "Macaca mulatta"
+  } else if (tolower(org) %in% c("rattus norvegicus", "rat", "rrnor_6.0", "rn6", "rn", "r. norvegicus")) {
+    org = "Rattus norvegicus"
+  } else if (tolower(org) %in% c("bos taurus", "cow", "Bos_taurus_UMD_3.1.1", "bt", "b. taurus")) {
+    org = "Bos taurus"
+  } else {
     stop(paste0(org, " is an unsupported organism"))
   }
 

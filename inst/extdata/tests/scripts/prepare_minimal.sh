@@ -1,7 +1,7 @@
 file=$1
 if [[ $file =~ \.gz$ ]]; then
-	gzip -dk $file
-	file=${file:0:-3}
+  	gzip -dk $file
+ 	file=${file:0:-3}
 fi
 echo "$file"
 # basic minimal file (With 5 protein coding sequences)
@@ -11,8 +11,7 @@ else
 	elements=$(grep ">" $file | awk -F ' ' ' { print $5 } ' | sort | uniq)
 fi
 
-for line in $elements
-do
+for line in $elements; do
 	if [[ "$line" == *"gene_biotype:protein_coding"* || "$line" == "protein_coding" ]]; then
 		line_n=$(grep -n "|$line|\| $line " $file | head -n 1 | awk -F ':' ' { print $1 } ')
         	line_n2=$(($(tail -n +$line_n $file | grep -n ">" | tail -n +2 | head -n 1 | awk -F ':' ' { print $1 } ')-1))
@@ -34,15 +33,15 @@ done
 # Add a non standard sequence for no alt chr step
 if $(echo $file | grep -q "Ensembl"); then
 	case $(echo $file | awk -F '.' ' { print $1 } ') in
-	"Bt")
+	"Bos_taurus")
 		reg=":[1-2][0-9]:\|:[1-9]:\|:X:\|:Y:\|:MT:";;
-	"Mmu")
+	"Macaca_mulatta")
 		reg=":1[0-9]:\|:20:\|:[1-9]:\|:X:\|:Y:\|:MT:";;
-	"Rn")
+	"Rattus_norvegicus")
 		reg=":1[0-9]:\|:20:\|:[1-9]:\|:X:\|:Y:\|:MT:";;
-	"Mm")
+	"Mus_musculus")
 		reg=":1[0-9]:\|:[1-9]:\|:X:\|:Y:\|:MT:";;
-	"Hs")
+	"Homo_sapiens")
 		reg=":1[0-9]:\|:2[0-2]:\|:[1-9]:\|:X:\|:Y:\|:MT:";;
 	esac
 
@@ -51,7 +50,7 @@ if $(echo $file | grep -q "Ensembl"); then
 		line_n2=$(($(tail -n +$line_n $file | grep -n ">" | tail -n +2 | head -n 1 | awk -F ':' ' { print $1 } ')-1))
 		tail -n +"$line_n" $file | head -n $line_n2 >> "out/$file"
 	fi
-elif $(echo $file | grep -q "Hs.Gencode"); then
+elif $(echo $file | grep -q "Homo_sapiens.Gencode"); then
 	reg="PAR_Y"
 	if ! (( $(grep -c -q $reg "out/$file") )); then
 		line_n=$(grep -n $reg $file | head -n 1 | awk -F ':' ' { print $1 } ')

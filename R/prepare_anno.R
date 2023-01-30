@@ -39,6 +39,10 @@
 #' @param release The version of the database to use. Must be greater than 100
 #' for Ensembl, 35 for Gencode Homo sapiens and 25 for Gencode Mus musculus.
 #' Default: NA
+#' @param annotation_version The version of the annotation database to use for
+#' Ensembl database. Will be ignored if using Gencode database. Must be lower
+#' or equal to Ensembl release.
+#' Default: NA
 #' @param ERCC92 Add ERCC92 sequence to reference and to anno? Default: FALSE
 #' @param force_download Re-download raw reference if it is already present?
 #' Default: FALSE
@@ -71,15 +75,14 @@
 #' @importFrom GenomeInfoDb genomeStyles
 #' @importFrom methods is
 #' @importFrom XML getHTMLLinks
+#' @importFrom AnnotationHub query
+#' @importFrom AnnotationHub AnnotationHub
 #' @import org.Hs.eg.db
 #' @import org.Mm.eg.db
-#' @import org.Rn.eg.db
-#' @import org.Mmu.eg.db
-#' @import org.Bt.eg.db
 #'
 #' @export
 
-prepare_anno <- function(org, db = "Ensembl", release = NA, ERCC92 = FALSE,
+prepare_anno <- function(org, db = "Ensembl", release = NA, annotation_version = NA, ERCC92 = FALSE,
                          force_download = FALSE, gtf = FALSE, outdir = ".") {
 
   # Validate params
@@ -108,6 +111,7 @@ prepare_anno <- function(org, db = "Ensembl", release = NA, ERCC92 = FALSE,
 
   if (is.na(release)) {
     release <- fetch_latest_release(org, db)
+    print(paste("using latest release :", db, release), sep = " ")
   } else {
     if (!is.numeric(release)) {
       stop("release must be a number")
@@ -122,6 +126,18 @@ prepare_anno <- function(org, db = "Ensembl", release = NA, ERCC92 = FALSE,
       if (org == "Mus musculus" & release < 25) {
         stop("release must be >= 25 for Mus musculus in Gencode")
       }
+    }
+  }
+
+  if (db == "Ensembl") {
+    latest_annot <- fetch_latest_annotation(org)
+    if (is.na(annotation_version)) {
+      annotation_version = latest_annot
+      print(paste0("Using latest annotation version : ", annotation_version))
+    } else if (!is.numeric(annotation_version) & !is.na(annotation_version)) {
+      stop("annotation_version must be a number")
+    } else if (annotation_version > latest_annot) {
+      stop("Annotation version not supported yet")
     }
   }
 
@@ -143,7 +159,7 @@ prepare_anno <- function(org, db = "Ensembl", release = NA, ERCC92 = FALSE,
   }
 
   # Download raw ref file
-  prefix <- get_prefix(org, db, release, outdir)
+  prefix <- get_prefix(org, db, release, annotation_version, outdir)
 
   raw_ref_infos <- get_filename_and_url(org, db, release)
   raw_ref_filename <- paste0(prefix, ".raw_ref.fa.gz")
@@ -163,7 +179,7 @@ prepare_anno <- function(org, db = "Ensembl", release = NA, ERCC92 = FALSE,
     stop("0 length transcripts in fasta file")
   }
 
-  raw_ref_anno <- extract_anno(raw_ref_fasta, org, db)
+  raw_ref_anno <- extract_anno(raw_ref_fasta, org, db, annotation_version)
 
   # Get cleaned ref
   ref_fasta <- raw_ref_fasta
@@ -237,16 +253,14 @@ prepare_anno <- function(org, db = "Ensembl", release = NA, ERCC92 = FALSE,
   }
   save_anno_resuts(ERCC92, prefix, "protein_coding", ref_fasta, anno)
 
-  info <- save_info(prefix, org, db, release, ERCC92, raw_ref_infos, gtf)
+  info <- save_info(prefix, org, db, release, ERCC92, raw_ref_infos, gtf, annotation_version)
   info
 }
 
-get_prefix <- function(org, db, release, outdir){
-  if (org == "Homo sapiens") {prefix <- paste0("Hs.", db, release)}
-  if (org == "Mus musculus") {prefix <- paste0("Mm.", db, release)}
-  if (org == "Macaca mulatta") {prefix <- paste0("Mmu.", db, release)}
-  if (org == "Rattus norvegicus") {prefix <- paste0("Rn.", db, release)}
-  if (org == "Bos taurus") {prefix <- paste0("Bt.", db, release)}
+get_prefix <- function(org, db, release, annotation_version, outdir){
+  organism = str_replace(org, " ", "_")
+  prefix <- paste0(organism, ".", db, release)
+  if (db == "Ensembl") {prefix <- paste(prefix, annotation_version, sep = "_")}
   paste(outdir, prefix, sep = "/")
 }
 
@@ -325,7 +339,7 @@ get_filename_and_url <- function(org, db, release) {
   list(filename = filename, url = url)
 }
 
-extract_anno <- function(raw_ref, org, db) {
+extract_anno <- function(raw_ref, org, db, annotation_version) {
   stopifnot(is(raw_ref, "DNAStringSet"))
   stopifnot(db %in% c("Gencode", "Ensembl"))
   if (db == "Gencode") {
@@ -357,28 +371,27 @@ extract_anno <- function(raw_ref, org, db) {
   } else if (db == "Ensembl") {
     id <- stringr::str_extract(names(raw_ref), "^ENS[^ ]*") %>%
       stringr::str_extract("^ENS[^\\.]*")
+    transcript_type <- stringr::str_extract(names(raw_ref), "transcript_biotype:[^ ]*") %>%
+      stringr::str_replace("transcript_biotype:", "")
     ensembl_gene <- stringr::str_extract(names(raw_ref), "gene:[^ ]*") %>%
       stringr::str_replace("gene:", "") %>%
       stringr::str_extract("^ENS[^\\.]*")
     symbol <- stringr::str_extract(names(raw_ref), "gene_symbol:[^ ]*") %>%
       stringr::str_replace("gene_symbol:", "")
-    transcript_type <- stringr::str_extract(names(raw_ref),
-                                            "transcript_biotype:[^ ]*") %>%
-      stringr::str_replace("transcript_biotype:", "")
-    if (org == "Homo sapiens") org_db <- org.Hs.eg.db
-    if (org == "Mus musculus") org_db <- org.Mm.eg.db
-    if (org == "Rattus norvegicus") org_db <- org.Rn.eg.db
-    if (org == "Macaca mulatta") org_db <- org.Mmu.eg.db
-    if (org == "Bos taurus") org_db <- org.Bt.eg.db
-    entrez_id <- AnnotationDbi::mapIds(org_db,
-                                       keys = ensembl_gene,
-                                       keytype = "ENSEMBL",
-                                       column = "ENTREZID")
-    data.frame(id = id,
-               ensembl_gene = ensembl_gene,
-               symbol = symbol,
-               entrez_id = entrez_id,
-               transcript_type = transcript_type)
+
+    hub <- AnnotationHub::AnnotationHub()
+    all_db <- AnnotationHub::query(hub, c(org, "EnsDb", annotation_version))
+    if (length(all_db) == 0){
+      stop("Unsupported annotation version")
+    }
+    db_name <- names(all_db@.db_uid[length(all_db)])
+    ensdb <- hub[[db_name]]
+
+    annot = data.frame(id = id,
+                       ensembl_gene = ensembl_gene,
+                       symbol = symbol,
+                       entrez_id = mapIds(ensdb, keys = id, keytype = "TXID", column = "ENTREZID"),
+                       transcript_type = transcript_type)
   } else {
     stop("Invalid db value")
   }
@@ -420,7 +433,7 @@ save_anno_resuts <- function(ERCC92, prefix, ref_type, ref_fasta, anno){
   }
 }
 
-save_info <- function(prefix, org, db, release, ERCC92, raw_ref_infos, gtf){
+save_info <- function(prefix, org, db, release, ERCC92, raw_ref_infos, gtf, annotation_version){
   if (ERCC92){
     prefix <- paste(prefix, "ERCC92", sep = ".")
   }
@@ -429,6 +442,7 @@ save_info <- function(prefix, org, db, release, ERCC92, raw_ref_infos, gtf){
                      org = org,
                      db = db,
                      release = release,
+                     annotation_version = ifelse(db == "Ensembl", annotation_version, NA),
                      ERCC92 = ERCC92,
                      anno_pkg_version = packageVersion("anno"),
                      download_date = as.Date(Sys.Date(), format = "%B %d %Y"),
@@ -537,3 +551,11 @@ fetch_latest_release <- function(org, db){
   }
   max(versions)
 }
+
+fetch_latest_annotation <- function(org){
+  hub <- AnnotationHub::AnnotationHub()
+  all_db <- AnnotationHub::query(hub, c(org, "EnsDb"))
+  versions <- stringr::str_extract(all_db$title, "Ensembl [0-9]*") %>% stringr::str_remove("Ensembl ") %>% as.numeric
+  max(versions)
+}
+

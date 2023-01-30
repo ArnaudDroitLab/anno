@@ -8,46 +8,51 @@
 # Rattus norvegicus Ensembl 102
 # Bos taurus Ensembl 108
 
-# curl https://ftp.ensembl.org/pub/release-108/fasta/homo_sapiens/cdna/Homo_sapiens.GRCh38.cdna.all.fa.gz --output Hs.Ensembl108.raw_ref.fa.gz
-# curl https://ftp.ensembl.org/pub/release-102/fasta/mus_musculus/cdna/Mus_musculus.GRCm38.cdna.all.fa.gz --output Mm.Ensembl102.raw_ref.fa.gz
-# curl https://ftp.ensembl.org/pub/release-108/fasta/mus_musculus/cdna/Mus_musculus.GRCm39.cdna.all.fa.gz	 --output Mm.Ensembl108.raw_ref.fa.gz
-# curl https://ftp.ensembl.org/pub/release-108/fasta/macaca_mulatta/cdna/Macaca_mulatta.Mmul_10.cdna.all.fa.gz --output Mmu.Ensembl108.raw_ref.fa.gz
-# curl https://ftp.ensembl.org/pub/release-102/fasta/rattus_norvegicus/cdna/Rattus_norvegicus.Rnor_6.0.cdna.all.fa.gz --output Rn.Ensembl102.raw_ref.fa.gz
-# curl https://ftp.ensembl.org/pub/release-108/fasta/rattus_norvegicus/cdna/Rattus_norvegicus.mRatBN7.2.cdna.all.fa.gz --output Rn.Ensembl108.raw_ref.fa.gz
-# curl https://ftp.ensembl.org/pub/release-108/fasta/bos_taurus/cdna/Bos_taurus.ARS-UCD1.2.cdna.all.fa.gz --output Bt.Ensembl108.raw_ref.fa.gz
-# curl http://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_mouse/release_M31/gencode.vM31.transcripts.fa.gz --output Mm.Gencode31.raw_ref.fa.gz
-# curl http://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_42/gencode.v42.transcripts.fa.gz --output Hs.Gencode42.raw_ref.fa.gz
+# curl https://ftp.ensembl.org/pub/release-108/fasta/homo_sapiens/cdna/Homo_sapiens.GRCh38.cdna.all.fa.gz --output Homo_sapiens.Ensembl108_105.raw_ref.fa.gz
+# curl https://ftp.ensembl.org/pub/release-102/fasta/mus_musculus/cdna/Mus_musculus.GRCm38.cdna.all.fa.gz --output Mus_musculus.Ensembl102_105.raw_ref.fa.gz
+# curl https://ftp.ensembl.org/pub/release-108/fasta/mus_musculus/cdna/Mus_musculus.GRCm39.cdna.all.fa.gz	 --output Mus_musculus.Ensembl108_105.raw_ref.fa.gz
+# curl https://ftp.ensembl.org/pub/release-108/fasta/macaca_mulatta/cdna/Macaca_mulatta.Mmul_10.cdna.all.fa.gz --output Macaca_mulatta.Ensembl108_105.raw_ref.fa.gz
+# curl https://ftp.ensembl.org/pub/release-102/fasta/rattus_norvegicus/cdna/Rattus_norvegicus.Rnor_6.0.cdna.all.fa.gz --output Rattus_norvegicus.Ensembl102_105.raw_ref.fa.gz
+# curl https://ftp.ensembl.org/pub/release-108/fasta/rattus_norvegicus/cdna/Rattus_norvegicus.mRatBN7.2.cdna.all.fa.gz --output Rattus_norvegicus.Ensembl108_105.raw_ref.fa.gz
+# curl https://ftp.ensembl.org/pub/release-108/fasta/bos_taurus/cdna/Bos_taurus.ARS-UCD1.2.cdna.all.fa.gz --output Bos_taurus.Ensembl108_105.raw_ref.fa.gz
+# curl http://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_mouse/release_M31/gencode.vM31.transcripts.fa.gz --output Mus_musculus.Gencode31.raw_ref.fa.gz
+# curl http://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_42/gencode.v42.transcripts.fa.gz --output Homo_sapiens.Gencode42.raw_ref.fa.gz
 
-./prepare_minimal.sh Hs.Ensembl108.raw_ref.fa.gz
-./prepare_minimal.sh Mm.Ensembl102.raw_ref.fa.gz
-./prepare_minimal.sh Mm.Ensembl108.raw_ref.fa.gz
-./prepare_minimal.sh Mmu.Ensembl108.raw_ref.fa.gz
-./prepare_minimal.sh Rn.Ensembl102.raw_ref.fa.gz
-./prepare_minimal.sh Rn.Ensembl108.raw_ref.fa.gz
-./prepare_minimal.sh Bt.Ensembl108.raw_ref.fa.gz
-./prepare_minimal.sh Mm.Gencode31.raw_ref.fa.gz
-./prepare_minimal.sh Hs.Gencode42.raw_ref.fa.gz
+echo "running prepare_minimal"
+./prepare_minimal.sh Homo_sapiens.Ensembl108_105.raw_ref.fa.gz
+./prepare_minimal.sh Mus_musculus.Ensembl102_105.raw_ref.fa.gz
+./prepare_minimal.sh Mus_musculus.Ensembl108_105.raw_ref.fa.gz
+./prepare_minimal.sh Macaca_mulatta.Ensembl108_105.raw_ref.fa.gz
+./prepare_minimal.sh Rattus_norvegicus.Ensembl102_105.raw_ref.fa.gz
+./prepare_minimal.sh Rattus_norvegicus.Ensembl108_105.raw_ref.fa.gz
+./prepare_minimal.sh Bos_taurus.Ensembl108_105.raw_ref.fa.gz
+./prepare_minimal.sh Mus_musculus.Gencode31.raw_ref.fa.gz
+./prepare_minimal.sh Homo_sapiens.Gencode42.raw_ref.fa.gz
 
+echo "Running clean_names"
 for i in $(ls out/*raw_ref.fa); do
 	./clean_names.sh $i
 done
 
+echo "Running no_alt"
 for i in $(ls out/*raw_ref.fa); do
 	./no_alt.sh $i
 done
 
+echo "Running protein_coding"
 for i in $(ls out/*raw_ref.fa); do
 	./protein_coding.sh $i
 done
 
-cp Hs.Ensembl108.raw_ref.fa.gz Hs.Ensembl108.ERCC92.raw_ref.fa.gz
-./prepare_minimal.sh Hs.Ensembl108.ERCC92.raw_ref.fa.gz
-./clean_names.sh out/Hs.Ensembl108.ERCC92.raw_ref.fa
-./no_alt.sh out/Hs.Ensembl108.ERCC92.raw_ref.fa
-./protein_coding.sh out/Hs.Ensembl108.ERCC92.raw_ref.fa
+echo "Preparing ERCC92"
+cp Homo_sapiens.Ensembl108_105.raw_ref.fa.gz Homo_sapiens.Ensembl108_105.ERCC92.raw_ref.fa.gz
+./prepare_minimal.sh Homo_sapiens.Ensembl108_105.ERCC92.raw_ref.fa.gz
+./clean_names.sh out/Homo_sapiens.Ensembl108_105.ERCC92.raw_ref.fa
+./no_alt.sh out/Homo_sapiens.Ensembl108_105.ERCC92.raw_ref.fa
+./protein_coding.sh out/Homo_sapiens.Ensembl108_105.ERCC92.raw_ref.fa
 
-cat ~/r_packages/anno/inst/extdata/ERCC92.fa | tee -a ./out/Hs.Ensembl108.ERCC92.cleaned_ref.fa ./out/Hs.Ensembl108.ERCC92.no_alt_chr.fa ./out/Hs.Ensembl108.ERCC92.protein_coding.fa
-grep ">" ~/r_packages/anno/inst/extdata/ERCC92.fa | awk -F '>' '{print $2","$2","$2",NA,Spike-in"}' | tee -a ./out/Hs.Ensembl108.ERCC92.cleaned_ref.csv ./out/Hs.Ensembl108.ERCC92.no_alt_chr.csv ./out/Hs.Ensembl108.ERCC92.protein_coding.csv
+cat ~/r_packages/anno/inst/extdata/ERCC92.fa | tee -a ./out/Homo_sapiens.Ensembl108_105.ERCC92.cleaned_ref.fa ./out/Homo_sapiens.Ensembl108_105.ERCC92.no_alt_chr.fa ./out/Homo_sapiens.Ensembl108_105.ERCC92.protein_coding.fa
+grep ">" ~/r_packages/anno/inst/extdata/ERCC92.fa | awk -F '>' '{print $2","$2","$2",NA,Spike-in"}' | tee -a ./out/Homo_sapiens.Ensembl108_105.ERCC92.cleaned_ref.csv ./out/Homo_sapiens.Ensembl108_105.ERCC92.no_alt_chr.csv ./out/Homo_sapiens.Ensembl108_105.ERCC92.protein_coding.csv
 
 for i in out/*.fa; do
 	~/tools/seqkit seq -w 80 $i > out/temp
@@ -64,4 +69,4 @@ ls reference/*raw_ref.fa.gz | awk -F '.raw_ref' '{print $1}' | awk -F '/' '{prin
 for i in $(ls reference/*raw_ref.fa.gz); do 
 	cp $i $(echo $i | awk -F '.raw_ref' '{print $1}' | awk -F '/' '{print $2"/"}')
 done
-mv Hs.Ensembl108.ERCC92/Hs.Ensembl108.ERCC92.raw_ref.fa.gz Hs.Ensembl108.ERCC92/Hs.Ensembl108.raw_ref.fa.gz
+mv Homo_sapiens.Ensembl108_105.ERCC92/Homo_sapiens.Ensembl108_105.ERCC92.raw_ref.fa.gz Homo_sapiens.Ensembl108_105.ERCC92/Homo_sapiens.Ensembl108_105.raw_ref.fa.gz

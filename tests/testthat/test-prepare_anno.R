@@ -1,25 +1,26 @@
-output_verification <- function(org, db, release, ERCC92 = FALSE, prefix) {
+output_verification <- function(org, db, release, annotation_version = 105, ERCC92 = FALSE, prefix) {
   outdir = system.file(paste0("extdata/tests/", prefix), package = "anno")
-  prepare_anno(org, db, release, ERCC92, force_download = FALSE, gtf = FALSE,
-               outdir = outdir)
+  suppressWarnings(prepare_anno(org, db, release, annotation_version, ERCC92, force_download = FALSE, gtf = FALSE,
+               outdir = outdir))
+  print(system.file(paste0("extdata/tests/reference/", prefix, ".cleaned_ref.csv"), package = "anno"))
   expect_equal(
-    Biostrings::readDNAStringSet(system.file(paste0("extdata/tests/", prefix, "/", prefix, ".cleaned_ref.fa.gz"), package = "anno")),
-    Biostrings::readDNAStringSet(system.file(paste0("extdata/tests/reference/", prefix, ".cleaned_ref.fa.gz"), package = "anno")))
+    Biostrings::readDNAStringSet(system.file(paste0(paste0("extdata/tests/", prefix), "/", prefix, ".cleaned_ref.fa.gz"), package = "anno")),
+    Biostrings::readDNAStringSet(system.file(paste0("extdata/tests/reference/", prefix, ".cleaned_ref.fa.gz"), package = "anno")), label = "clean fasta")
   expect_equal(
-    read.csv(system.file(paste0("extdata/tests/", prefix, "/", prefix, ".cleaned_ref.csv"), package = "anno")),
-    read.csv(system.file(paste0("extdata/tests/reference/", prefix, ".cleaned_ref.csv"), package = "anno")))
+    read.csv(system.file(paste0(paste0("extdata/tests/", prefix), "/", prefix, ".cleaned_ref.csv"), package = "anno")),
+    read.csv(system.file(paste0("extdata/tests/reference/", prefix, ".cleaned_ref.csv"), package = "anno")), label = "clean csv")
   expect_equal(
-    Biostrings::readDNAStringSet(system.file(paste0("extdata/tests/", prefix, "/", prefix, ".no_alt_chr.fa.gz"), package = "anno")),
-    Biostrings::readDNAStringSet(system.file(paste0("extdata/tests/reference/", prefix, ".no_alt_chr.fa.gz"), package = "anno")))
+    Biostrings::readDNAStringSet(system.file(paste0(paste0("extdata/tests/", prefix), "/", prefix, ".no_alt_chr.fa.gz"), package = "anno")),
+    Biostrings::readDNAStringSet(system.file(paste0("extdata/tests/reference/", prefix, ".no_alt_chr.fa.gz"), package = "anno")), label = "no alt fasta")
   expect_equal(
-    read.csv(system.file(paste0("extdata/tests/", prefix, "/", prefix, ".no_alt_chr.csv"), package = "anno")),
-    read.csv(system.file(paste0("extdata/tests/reference/", prefix, ".no_alt_chr.csv"), package = "anno")))
+    read.csv(system.file(paste0(paste0("extdata/tests/", prefix), "/", prefix, ".no_alt_chr.csv"), package = "anno")),
+    read.csv(system.file(paste0("extdata/tests/reference/", prefix, ".no_alt_chr.csv"), package = "anno")), label = "no alt csv")
   expect_equal(
-    Biostrings::readDNAStringSet(system.file(paste0("extdata/tests/", prefix, "/", prefix, ".protein_coding.fa.gz"), package = "anno")),
-    Biostrings::readDNAStringSet(system.file(paste0("extdata/tests/reference/", prefix, ".protein_coding.fa.gz"), package = "anno")))
+    Biostrings::readDNAStringSet(system.file(paste0(paste0("extdata/tests/", prefix), "/", prefix, ".protein_coding.fa.gz"), package = "anno")),
+    Biostrings::readDNAStringSet(system.file(paste0("extdata/tests/reference/", prefix, ".protein_coding.fa.gz"), package = "anno")), label = "protein fasta")
   expect_equal(
-    read.csv(system.file(paste0("extdata/tests/", prefix, "/", prefix, ".protein_coding.csv"), package = "anno")),
-    read.csv(system.file(paste0("extdata/tests/reference/", prefix, ".protein_coding.csv"), package = "anno")))
+    read.csv(system.file(paste0(paste0("extdata/tests/", prefix), "/", prefix, ".protein_coding.csv"), package = "anno")),
+    read.csv(system.file(paste0("extdata/tests/reference/", prefix, ".protein_coding.csv"), package = "anno")), label = "protein csv")
   closeAllConnections()
   files <- list.files(system.file(paste0("extdata/tests/", prefix, "/"), package = "anno"))
   files <- grep("raw_ref", files, invert = TRUE, value = TRUE)
@@ -77,48 +78,48 @@ test_that("0 length transcripts checking works", {
 # manually generated file with duplicated transcripts in it
 test_that("Duplicated transcripts checking works", {
   msg <- "Duplicated transcripts in fasta"
-  expect_error(prepare_anno(org = "Mus musculus", db = "Ensembl", release = 10001,
-                            outdir = system.file("extdata/tests/error", package = "anno")), msg)
+  expect_error(suppressWarnings(prepare_anno(org = "Mus musculus", db = "Ensembl", release = 10001,
+                            outdir = system.file("extdata/tests/error", package = "anno")), msg))
 })
 
 # verify getting last release
 
 test_that("Hs Ensembl 108 works", {
-  output_verification("Homo sapiens", "Ensembl", 108, FALSE, "Hs.Ensembl108")
+  output_verification("Homo sapiens", "Ensembl", 108, 105, FALSE, "Homo_sapiens.Ensembl108_105")
 })
 
 test_that("Mm Ensembl 102 works", {
-  output_verification("Mus musculus", "Ensembl", 102, FALSE, "Mm.Ensembl102")
+  output_verification("Mus musculus", "Ensembl", 102, 105, FALSE, "Mus_musculus.Ensembl102_105")
 })
 
 test_that("Mm Ensembl 108 works", {
-  output_verification("Mus musculus", "Ensembl", 108, FALSE, "Mm.Ensembl108")
+  output_verification("Mus musculus", "Ensembl", 108, 105, FALSE, "Mus_musculus.Ensembl108_105")
 })
 
 test_that("Mmu Ensembl 108 works", {
-  output_verification("Macaca mulatta", "Ensembl", 108, FALSE, "Mmu.Ensembl108")
+  output_verification("Macaca mulatta", "Ensembl", 108, 105, FALSE, "Macaca_mulatta.Ensembl108_105")
 })
 
 test_that("Rn Ensembl 102 works", {
-  output_verification("Rattus norvegicus", "Ensembl", 102, FALSE, "Rn.Ensembl102")
+  output_verification("Rattus norvegicus", "Ensembl", 102, 105, FALSE, "Rattus_norvegicus.Ensembl102_105")
 })
 
 test_that("Rn Ensembl 108 works", {
-  output_verification("Rattus norvegicus", "Ensembl", 108, FALSE, "Rn.Ensembl108")
+  output_verification("Rattus norvegicus", "Ensembl", 108, 105, FALSE, "Rattus_norvegicus.Ensembl108_105")
 })
 
 test_that("Bt Ensembl 108 works", {
-  output_verification("Bos taurus", "Ensembl", 108, FALSE, "Bt.Ensembl108")
+  output_verification("Bos taurus", "Ensembl", 108, 105, FALSE, "Bos_taurus.Ensembl108_105")
 })
 
 test_that("Mm Gencode 31 works", {
-  output_verification("Mus musculus", "Gencode", 31, FALSE, "Mm.Gencode31")
+  output_verification("Mus musculus", "Gencode", 31, 105, FALSE, "Mus_musculus.Gencode31")
 })
 
 test_that("Hs Gencode 42 works", {
-  output_verification("Homo sapiens", "Gencode", 42, FALSE, "Hs.Gencode42")
+  output_verification("Homo sapiens", "Gencode", 42, 105, FALSE, "Homo_sapiens.Gencode42")
 })
 
 test_that("Hs Ensembl 108 with ERCC92 works", {
-  output_verification("Homo sapiens", "Ensembl", 108, TRUE, "Hs.Ensembl108.ERCC92")
+  output_verification("Homo sapiens", "Ensembl", 108, 105, TRUE, "Homo_sapiens.Ensembl108_105.ERCC92")
 })

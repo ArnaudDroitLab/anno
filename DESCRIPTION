@@ -1,7 +1,7 @@
 Package: anno
 Type: Package
 Title: Download and clean references and prepare annotations
-Version: 0.1.11
+Version: 0.1.12
 Authors@R:
   person("Charles",
          "Joly",
@@ -29,13 +29,11 @@ Imports:
     methods,
     org.Hs.eg.db,
     org.Mm.eg.db,
-    org.Mmu.eg.db,
-    org.Rn.eg.db,
-    org.Bt.eg.db,
     readr,
     stringr,
     tidyr,
-    XML
+    XML,
+    AnnotationHub
 Suggests: 
     knitr,
     rmarkdown,

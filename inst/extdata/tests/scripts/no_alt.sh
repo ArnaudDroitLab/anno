@@ -6,15 +6,15 @@ prefix=$(echo "$1" | awk -F '.raw_ref' '{print $1}')
 echo "id,ensembl_gene,symbol,transcript_type" >> "$prefix.temp_no_alt_chr.csv"
 if $(echo $file | grep -q "Ensembl"); then
         case $(echo $file | awk -F '.' ' { print $1 } ') in
-        *"Bt")
+        *"Bos_taurus")
                 reg=":[1-2][0-9]:\|:[1-9]:\|:X:\|:Y:\|:MT:";;
-        *"Mmu")
+        *"Macaca_mulatta")
                 reg=":1[0-9]:\|:20:\|:[1-9]:\|:X:\|:Y:\|:MT:";;
-        *"Rn")
+        *"Rattus_norvegicus")
                 reg=":1[0-9]:\|:20:\|:[1-9]:\|:X:\|:Y:\|:MT:";;
-        *"Mm")
+        *"Mus_musculus")
                 reg=":1[0-9]:\|:[1-9]:\|:X:\|:Y:\|:MT:";;
-        *"Hs")
+        *"Homo_sapiens")
                 reg=":1[0-9]:\|:2[0-2]:\|:[1-9]:\|:X:\|:Y:\|:MT:";;
         esac
 	write=true

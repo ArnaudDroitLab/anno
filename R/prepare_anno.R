@@ -35,6 +35,7 @@
 #'                * Macaca mulatta (Ensembl only)
 #'                * Rattus norvegicus (Ensembl only)
 #'                * Bos taurus (Ensembl only)
+#'                * Mesocricetus auratus (Ensembl only, annotation unsufficient to do the no_alt_chr)
 #' @param db The database to use: Ensembl or Gencode. Default: "Ensembl"
 #' @param release The version of the database to use. Must be greater than 100
 #' for Ensembl, 35 for Gencode Homo sapiens and 25 for Gencode Mus musculus.
@@ -96,8 +97,10 @@ prepare_anno <- function(org, db = "Ensembl", release = NA, annotation_version =
     org = "Macaca mulatta"
   } else if (tolower(org) %in% c("rattus norvegicus", "rat", "rrnor_6.0", "rn6", "rn", "r. norvegicus")) {
     org = "Rattus norvegicus"
-  } else if (tolower(org) %in% c("bos taurus", "cow", "Bos_taurus_UMD_3.1.1", "bt", "b. taurus")) {
+  } else if (tolower(org) %in% c("bos taurus", "cow", "bos_taurus_umd_3.1.1", "bt", "b. taurus")) {
     org = "Bos taurus"
+  } else if (tolower(org) %in% c("mesocricetus auratus", "hamster", "mesaur1.0", "ma", "m. auratus")) {
+    org = "Mesocricetus auratus"
   } else {
     stop(paste0(org, " is an unsupported organism"))
   }
@@ -208,7 +211,7 @@ prepare_anno <- function(org, db = "Ensembl", release = NA, annotation_version =
   if (db == "Gencode") {
     ref_fasta <- ref_fasta[!stringr::str_detect(names(ref_fasta), "PAR_Y")]
   }
-  if (db == "Ensembl") {
+  if (db == "Ensembl" & org != "Mesocricetus auratus") {
     if (org == "Macaca mulatta") {
       chromosomes <- names(ref_fasta) %>% str_extract("Mmul_[0-9]*:[^:]*") %>% str_extract("[^:]*$")
       std_chr <- c(1:20, "X", "Y", "MT")
@@ -266,7 +269,7 @@ get_prefix <- function(org, db, release, annotation_version, outdir){
 
 get_filename_and_url <- function(org, db, release) {
   stopifnot(org %in% c("Homo sapiens", "Mus musculus", "Macaca mulatta",
-                       "Rattus norvegicus", "Bos taurus"))
+                       "Rattus norvegicus", "Bos taurus", "Mesocricetus auratus"))
 
   stopifnot(db %in% c("Ensembl", "Gencode"))
   if (db == "Gencode") {
@@ -336,6 +339,11 @@ get_filename_and_url <- function(org, db, release) {
     url <- paste0(base_url_ensembl, release, "/fasta/bos_taurus/cdna/",
                   filename)
   }
+  if (org == "Mesocricetus auratus") {
+    filename <- "Mesocricetus_auratus.MesAur1.0.cdna.all.fa.gz"
+    url <- paste0(base_url_ensembl, release, "/fasta/mesocricetus_auratus/cdna/",
+                  filename)
+  }
   list(filename = filename, url = url)
 }
 
@@ -360,9 +368,6 @@ extract_anno <- function(raw_ref, org, db, annotation_version) {
                     ensembl_gene = stringr::str_replace(ensembl_gene, "\\..*$", ""))
     if (org == "Homo sapiens") org_db <- org.Hs.eg.db
     if (org == "Mus musculus") org_db <- org.Mm.eg.db
-    if (org == "Rattus norvegicus") org_db <- org.Rn.eg.db
-    if (org == "Macaca mulatta") org_db <- org.Mmu.eg.db
-    if (org == "Bos taurus") org_db <- org.Bt.eg.db
     df$entrez_id <- AnnotationDbi::mapIds(org_db,
                                           keys = df$ensembl_gene,
                                           keytype = "ENSEMBL",
@@ -529,6 +534,10 @@ get_gtf_link <- function(org, db, release){
   }
   if (org == "Bos taurus") {
     filename <- paste0("Bos_taurus.ARS-UCD1.2.", release, ".gtf.gz")
+    url <- paste0(url_ensembl, filename)
+  }
+  if (org == "Mesocricetus auratus") {
+    filename <- paste0("Mesocricetus_auratus.MesAur1.0.", release, ".gtf.gz")
     url <- paste0(url_ensembl, filename)
   }
   url

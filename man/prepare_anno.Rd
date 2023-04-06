@@ -8,6 +8,7 @@ prepare_anno(
   org,
   db = "Ensembl",
   release = NA,
+  annotation_version = NA,
   ERCC92 = FALSE,
   force_download = FALSE,
   gtf = FALSE,
@@ -20,12 +21,18 @@ prepare_anno(
 * Mus musculus (Ensembl and Gencode)
 * Macaca mulatta (Ensembl only)
 * Rattus norvegicus (Ensembl only)
-* Bos taurus (Ensembl only)}
+* Bos taurus (Ensembl only)
+* Mesocricetus auratus (Ensembl only, annotation unsufficient to do the no_alt_chr)}
 
 \item{db}{The database to use: Ensembl or Gencode. Default: "Ensembl"}
 
 \item{release}{The version of the database to use. Must be greater than 100
 for Ensembl, 35 for Gencode Homo sapiens and 25 for Gencode Mus musculus.
+Default: NA}
+
+\item{annotation_version}{The version of the annotation database to use for
+Ensembl database. Will be ignored if using Gencode database. Must be lower
+or equal to Ensembl release.
 Default: NA}
 
 \item{ERCC92}{Add ERCC92 sequence to reference and to anno? Default: FALSE}

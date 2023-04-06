@@ -17,6 +17,7 @@
 # curl https://ftp.ensembl.org/pub/release-108/fasta/bos_taurus/cdna/Bos_taurus.ARS-UCD1.2.cdna.all.fa.gz --output Bos_taurus.Ensembl108_105.raw_ref.fa.gz
 # curl http://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_mouse/release_M31/gencode.vM31.transcripts.fa.gz --output Mus_musculus.Gencode31.raw_ref.fa.gz
 # curl http://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_42/gencode.v42.transcripts.fa.gz --output Homo_sapiens.Gencode42.raw_ref.fa.gz
+# curl https://ftp.ensembl.org/pub/release-109/fasta/mesocricetus_auratus/cdna/Mesocricetus_auratus.MesAur1.0.cdna.all.fa.gz --output Mesocricetus_auratus.Ensembl108_105.raw_ref.fa.gz
 
 echo "running prepare_minimal"
 ./prepare_minimal.sh Homo_sapiens.Ensembl108_105.raw_ref.fa.gz
@@ -66,7 +67,7 @@ cp todo ~/r_packages/anno/inst/extdata/tests/scripts/
 cp out/* ~/r_packages/anno/inst/extdata/tests/reference
 cd ~/r_packages/anno/inst/extdata/tests/
 ls reference/*raw_ref.fa.gz | awk -F '.raw_ref' '{print $1}' | awk -F '/' '{print $2}' | xargs -L 1 mkdir
-for i in $(ls reference/*raw_ref.fa.gz); do 
+for i in $(ls reference/*raw_ref.fa.gz); do
 	cp $i $(echo $i | awk -F '.raw_ref' '{print $1}' | awk -F '/' '{print $2"/"}')
 done
 mv Homo_sapiens.Ensembl108_105.ERCC92/Homo_sapiens.Ensembl108_105.ERCC92.raw_ref.fa.gz Homo_sapiens.Ensembl108_105.ERCC92/Homo_sapiens.Ensembl108_105.raw_ref.fa.gz

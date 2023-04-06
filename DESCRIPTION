@@ -1,7 +1,7 @@
 Package: anno
 Type: Package
 Title: Download and clean references and prepare annotations
-Version: 0.1.12
+Version: 0.1.13
 Authors@R:
   person("Charles",
          "Joly",
@@ -19,7 +19,7 @@ Description: The goal of this function is to download the reference fasta file f
 License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
-RoxygenNote: 7.2.1
+RoxygenNote: 7.2.3
 Imports: 
     AnnotationDbi,
     Biostrings,

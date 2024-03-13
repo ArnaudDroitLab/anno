@@ -568,3 +568,42 @@ fetch_latest_annotation <- function(org){
   max(versions)
 }
 
+read_fasta_to_biostrings <- function(path){
+  if (!is.character(path)) {
+    stop("Path to the fasta file must be a string")
+  }
+  if (!c("fa", "fasta") %in% stringr::str_split_1(path, "\\.")) {
+    stop("File name must end with .fasta, .fa, .fa.gz or .fasta.gz")
+  }
+  fasta_biostrings = Biostrings::readDNAStringSet(path)
+}
+
+parse_fasta_names <- function(fasta_biostrings){
+  temp <- lapply(fasta_biostrings@ranges@NAMES, function(name) {
+    colnames <- stringr::str_extract_all(name, "\\s\\w+:") %>% unlist() %>% stringr::str_remove_all("[\\s:]")
+    spaced <- stringr::str_split_1(name, " ")
+    values = c(spaced[2])
+    temp_values = lapply(colnames, function(x){
+      search_name = paste0(x, ":");
+      if (search_name == "description:") {
+        stringr::str_split_1(name, search_name)[2]
+      } else {
+        grep(search_name, spaced, value = TRUE) %>% gsub(pattern = search_name, replacement = "", x = .)}
+      }) %>% unlist()
+    values = c(values, temp_values)
+    colnames = c("type", colnames)
+    ids = rep(spaced[1], times = length(values))
+    data.frame(ids = ids, colnames = colnames, values = values)
+  })
+  parsed = dplyr::bind_rows(temp, .id = "column_label") %>% tidyr::pivot_wider(., names_from = colnames, values_from = values)
+
+}
+
+# anno_from_fasta <- function(fasta_path, anno_path) {
+#   fasta_biostrings <- read_fasta_to_biostrings(fasta_path)
+#   fasta_df <- parse_fasta_names(fasta_biostrings)
+#   anno_df <- format_anno(fasta_df) # add entrez id + rename col
+#   readr::write_csv(anno_df, anno_path)
+#
+# }
+

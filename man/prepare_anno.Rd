@@ -5,24 +5,30 @@
 \title{Download and clean ref and prepare anno}
 \usage{
 prepare_anno(
-  org,
+  org = NA,
   db = "Ensembl",
   release = NA,
   annotation_version = NA,
+  fasta = NA,
   ERCC92 = FALSE,
+  standard_chr = NA,
   force_download = FALSE,
   gtf = FALSE,
   outdir = "."
 )
 }
 \arguments{
-\item{org}{The organism name. Currently accepted:
-* Homo sapiens (Ensembl and Gencode)
-* Mus musculus (Ensembl and Gencode)
-* Macaca mulatta (Ensembl only)
-* Rattus norvegicus (Ensembl only)
-* Bos taurus (Ensembl only)
-* Mesocricetus auratus (Ensembl only, annotation unsufficient to do the no_alt_chr)}
+\item{org}{The organism name. Currently supported:
+               * Homo sapiens (Ensembl and Gencode)
+               * Mus musculus (Ensembl and Gencode)
+               * Macaca mulatta (Ensembl only)
+               * Rattus norvegicus (Ensembl only)
+               * Bos taurus (Ensembl only)
+               * Mesocricetus auratus (Ensembl only, annotation unsufficient to do the no_alt_chr)
+This can also be any organism in the ensembl database, but they are not
+officially supported and can result in bugs. If a fasta is provided, orgnaism
+can be anything (containing only letters, numbers, spaces, _, -).
+Default: NA}
 
 \item{db}{The database to use: Ensembl or Gencode. Default: "Ensembl"}
 
@@ -35,7 +41,14 @@ Ensembl database. Will be ignored if using Gencode database. Must be lower
 or equal to Ensembl release.
 Default: NA}
 
-\item{ERCC92}{Add ERCC92 sequence to reference and to anno? Default: FALSE}
+\item{fasta}{Path to the fasta file, if it has already been downloaded. For
+now only Ensembl fasta are supported.
+Default: NA}
+
+\item{ERCC92}{Add ERCC92 sequence to reference and to anno?
+Default: FALSE}
+
+\item{standard_chr}{Unsupported as of now}
 
 \item{force_download}{Re-download raw reference if it is already present?
 Default: FALSE}
@@ -43,7 +56,8 @@ Default: FALSE}
 \item{gtf}{Download the annotation corresponding to the fasta in gtf format?
 Default: FALSE}
 
-\item{outdir}{Directory in which to save the files. Default : "."}
+\item{outdir}{Directory in which to save the files.
+Default: "."}
 }
 \value{
 Returns a \code{list} including every information in the
@@ -82,7 +96,7 @@ The <prefix>.info file contains the following columns:
 }
 \examples{
 \dontrun{
-  prepare_anno("Hs.Ensembl103", org = "Homo sapiens", db = "Ensembl",
+  prepare_anno(org = "Homo sapiens", db = "Ensembl",
                release = 103)
 }
 

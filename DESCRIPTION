@@ -1,7 +1,7 @@
 Package: anno
 Type: Package
 Title: Download and clean references and prepare annotations
-Version: 0.1.13
+Version: 0.2.0
 Authors@R:
   person("Charles",
          "Joly",

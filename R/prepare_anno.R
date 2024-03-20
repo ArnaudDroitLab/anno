@@ -29,13 +29,17 @@
 #'    * download_url: The URL that was used to download the annotation.
 #'    * A md5sum for every file generated, one column per file.
 #'
-#' @param org The organism name. Currently accepted:
+#' @param org The organism name. Currently supported:
 #'                * Homo sapiens (Ensembl and Gencode)
 #'                * Mus musculus (Ensembl and Gencode)
 #'                * Macaca mulatta (Ensembl only)
 #'                * Rattus norvegicus (Ensembl only)
 #'                * Bos taurus (Ensembl only)
 #'                * Mesocricetus auratus (Ensembl only, annotation unsufficient to do the no_alt_chr)
+#' This can also be any organism in the ensembl database, but they are not
+#' officially supported and can result in bugs. If a fasta is provided, orgnaism
+#' can be anything (containing only letters, numbers, spaces, _, -).
+#' Default: NA
 #' @param db The database to use: Ensembl or Gencode. Default: "Ensembl"
 #' @param release The version of the database to use. Must be greater than 100
 #' for Ensembl, 35 for Gencode Homo sapiens and 25 for Gencode Mus musculus.
@@ -44,19 +48,25 @@
 #' Ensembl database. Will be ignored if using Gencode database. Must be lower
 #' or equal to Ensembl release.
 #' Default: NA
-#' @param ERCC92 Add ERCC92 sequence to reference and to anno? Default: FALSE
+#' @param fasta Path to the fasta file, if it has already been downloaded. For
+#' now only Ensembl fasta are supported.
+#' Default: NA
+#' @param ERCC92 Add ERCC92 sequence to reference and to anno?
+#' Default: FALSE
+#' @param standard_chr Unsupported as of now
 #' @param force_download Re-download raw reference if it is already present?
 #' Default: FALSE
 #' @param gtf Download the annotation corresponding to the fasta in gtf format?
 #' Default: FALSE
-#' @param outdir Directory in which to save the files. Default : "."
+#' @param outdir Directory in which to save the files.
+#' Default: "."
 #'
 #' @return Returns a \code{list} including every information in the
 #' <prefix>.info file.
 #'
 #' @examples
 #' \dontrun{
-#'   prepare_anno("Hs.Ensembl103", org = "Homo sapiens", db = "Ensembl",
+#'   prepare_anno(org = "Homo sapiens", db = "Ensembl",
 #'                release = 103)
 #' }
 #'
@@ -83,41 +93,162 @@
 #'
 #' @export
 
-prepare_anno <- function(org, db = "Ensembl", release = NA, annotation_version = NA, ERCC92 = FALSE,
+prepare_anno <- function(org = NA, db = "Ensembl", release = NA, annotation_version = NA, fasta = NA, ERCC92 = FALSE, standard_chr = NA,
                          force_download = FALSE, gtf = FALSE, outdir = ".") {
 
   # Validate params
-  if (!is.character(org)) {
-    stop("org must be a string and a supported organism")
-  } else if (tolower(org) %in% c("homo sapiens", "human", "grch38", "hg38", "hs", "h. sapiens")) {
-    org = "Homo sapiens"
-  } else if (tolower(org) %in% c("mus musculus", "mouse", "grcm38", "mm10", "mm", "grcm39", "mm39", "m. musculus")) {
-    org = "Mus musculus"
-  } else if (tolower(org) %in% c("macaca mulatta", "rhesus monkey", "mmul_10", "rhemac10", "mmu", "m. mulatta")) {
-    org = "Macaca mulatta"
-  } else if (tolower(org) %in% c("rattus norvegicus", "rat", "rrnor_6.0", "rn6", "rn", "r. norvegicus")) {
-    org = "Rattus norvegicus"
-  } else if (tolower(org) %in% c("bos taurus", "cow", "bos_taurus_umd_3.1.1", "bt", "b. taurus")) {
-    org = "Bos taurus"
-  } else if (tolower(org) %in% c("mesocricetus auratus", "hamster", "mesaur1.0", "ma", "m. auratus")) {
-    org = "Mesocricetus auratus"
-  } else {
-    stop(paste0(org, " is an unsupported organism"))
+  new_params <- validate_params(org, db, release, annotation_version, fasta, ERCC92, standard_chr, force_download, gtf, outdir)
+  release = new_params[["release"]]
+  annotation_version = new_params[["annotation_version"]]
+  valid_org = new_params[["valid_org"]]
+  supported_org = new_params[["supported_org"]]
+
+  # Download raw ref file
+  prefix <- get_prefix(org, db, release, annotation_version, outdir)
+
+  if (is.na(fasta)) {
+    raw_ref_infos <- get_filename_and_url(org, db, release, valid_org)
+    raw_ref_filename <- paste0(prefix, ".raw_ref.fa.gz")
+    if (!file.exists(raw_ref_filename) | force_download) {
+      download.file(raw_ref_infos$url, destfile = raw_ref_filename,
+                    method = "curl", extra = "-L")
+    }
+  } else {raw_ref_filename = fasta}
+
+  gtf_filename <- paste0(prefix, ".gtf.gz")
+  if (gtf & (!file.exists(gtf_filename) | force_download)) {
+    gtf_url <- get_gtf_link(org, db, release)
+    download.file(gtf_url, destfile = gtf_filename,
+                  method = "curl", extra = "-L")
   }
+  raw_ref_fasta <- Biostrings::readDNAStringSet(raw_ref_filename)
+  if (any(BiocGenerics::width(raw_ref_fasta) == 0)) {
+    stop("0 length transcripts in fasta file")
+  }
+
+  raw_ref_anno <- extract_anno_bis(raw_ref_fasta, org, db, annotation_version, supported_org)
+
+  # Get cleaned ref
+  anno <- raw_ref_anno
+  ref_fasta <- raw_ref_fasta
+  clean_names <- clean_ref(ref_fasta, db)
+  names(ref_fasta) <- clean_names
+
+  if (ERCC92) {
+    ref_fasta <- add_ercc92_fasta(ref_fasta)
+    anno <- add_ercc92_anno(anno)
+  }
+
+  save_anno_resuts(ERCC92, prefix, "cleaned_ref", ref_fasta, anno)
+
+  # Get ref without alternative chromosomes
+  if (supported_org) {
+    ref_fasta <- no_alt_chr(raw_ref_fasta, db, org)
+    names(ref_fasta) <- clean_ref(ref_fasta, db)
+    anno <- raw_ref_anno %>% dplyr::filter(id %in% names(ref_fasta))
+
+    if (ERCC92) {
+      anno <- add_ercc92_anno(anno)
+      ref_fasta <- add_ercc92_fasta(ref_fasta)
+    }
+
+    save_anno_resuts(ERCC92, prefix, "no_alt_chr", ref_fasta, anno)
+  }
+
+
+  # Get ref with only protein_coding genes
+  ref_fasta <- raw_ref_fasta[BiocGenerics::width(raw_ref_fasta) != 0]
+
+  names(ref_fasta) <- clean_names
+
+  i <- raw_ref_anno$transcript_type == "protein_coding"
+  anno <- raw_ref_anno[i,]
+  ref_fasta <- ref_fasta[i]
+
+  if (ERCC92) {
+    anno <- add_ercc92_anno(anno)
+    ref_fasta <- add_ercc92_fasta(ref_fasta)
+  }
+  save_anno_resuts(ERCC92, prefix, "protein_coding", ref_fasta, anno)
+
+  info <- save_info(prefix, org, db, release, ERCC92, if (is.na(fasta)) raw_ref_infos$url else "NA", gtf, annotation_version, raw_ref = raw_ref_filename)
+  info
+}
+
+validate_params <- function(org, db, release, annotation_version, fasta, ERCC92, standard_chr,
+                            force_download, gtf, outdir) {
 
   if (!db %in% c("Ensembl", "Gencode")) {
     stop("db must be either Ensembl or Gencode")
   }
-  if (db == "Gencode" & !org %in% c("Homo sapiens", "Mus musculus")) {
-    stop("Gencode database only accepts Homo Sapiens and Mus musculus organisms")
+
+  is_supported = FALSE
+  is_valid_ensembl_org = FALSE
+  if (!is.character(org) & !is.na(org)) {
+    stop("org must be NA or a supported organism")
+  } else if (tolower(org) %in% c("homo sapiens", "human", "grch38", "hg38", "hs", "h. sapiens")) {
+    org = "Homo sapiens"
+    is_supported = TRUE
+    is_valid_ensembl_org = TRUE
+  } else if (tolower(org) %in% c("mus musculus", "mouse", "grcm38", "mm10", "mm", "grcm39", "mm39", "m. musculus")) {
+    org = "Mus musculus"
+    is_supported = TRUE
+    is_valid_ensembl_org = TRUE
+  } else if (tolower(org) %in% c("macaca mulatta", "rhesus monkey", "mmul_10", "rhemac10", "mmu", "m. mulatta")) {
+    org = "Macaca mulatta"
+    is_supported = TRUE
+    is_valid_ensembl_org = TRUE
+  } else if (tolower(org) %in% c("rattus norvegicus", "rat", "rrnor_6.0", "rn6", "rn", "r. norvegicus")) {
+    org = "Rattus norvegicus"
+    is_supported = TRUE
+    is_valid_ensembl_org = TRUE
+  } else if (tolower(org) %in% c("bos taurus", "cow", "bos_taurus_umd_3.1.1", "bt", "b. taurus")) {
+    org = "Bos taurus"
+    is_supported = TRUE
+    is_valid_ensembl_org = TRUE
+  } else if (tolower(org) %in% c("mesocricetus auratus", "hamster", "mesaur1.0", "ma", "m. auratus")) {
+    org = "Mesocricetus auratus"
+    is_supported = TRUE
+    is_valid_ensembl_org = TRUE
+  } else if (!is.na(org)) {
+    if (db == "Ensembl" & is.na(fasta)) {
+      print(paste0(org, " is an unsupported organism, checking if it is a valid Ensembl organism"))
+      is_valid_ensembl_org <- fetch_ensembl_organism(org, db, release)
+      if (!is_valid_ensembl_org) {
+        stop(paste0("fasta is not provided, and organism ", org, " is not a valid ensembl organism"))
+      } else {
+        print(paste0("fasta is not provided, but organism ", org, " is a valid ensembl organism, genome will be downloaded but ENTREZID will be skipped"))
+      }
+    } else if (db == "Ensembl" & !is.na(fasta)) {
+      print(paste0(org, " is an unsupported organism, fasta has been provided and genome will not be downloaded"))
+    }
+  } else {
+    print("organism is NA, a fasta must be provided and ENTREZID will be skipped")
   }
 
-  if (is.na(release)) {
+  if (db == "Gencode" & !org %in% c("Homo sapiens", "Mus musculus")) {
+    stop("Gencode database only accepts Homo sapiens and Mus musculus organisms")
+  }
+
+  if (!is_supported & !is.na(org) & db == "Ensembl" & is.na(fasta)) {
+    is_valid_ensembl_org <- fetch_ensembl_organism(org, db, release)
+    if (!is_valid_ensembl_org) {
+      stop(paste0("fasta is not provided, but organism ", org, " is not a valid ensembl organism"))
+    }
+  }
+
+  if (is.na(release) & is_supported) {
     release <- fetch_latest_release(org, db)
     print(paste("using latest release :", db, release), sep = " ")
-  } else {
-    if (!is.numeric(release)) {
-      stop("release must be a number")
+  } else if (is.na(release) & is.na(org)) {
+    print("No organism specified, skipping EntrezID search")
+  } else if (is_valid_ensembl_org) {
+    if (!is.numeric(release) & db == "Ensembl") {
+      print("Organism not officially supported, trying to get the latest Ensembl release for this organism")
+      release <- fetch_latest_release(org, db)
+      print(paste("using latest release :", db, release), sep = " ")
+
+      # stop("release must be a number")
     }
     if (db == "Ensembl" & release < 100) {
       stop("release must be >= 100 for Ensembl")
@@ -132,16 +263,29 @@ prepare_anno <- function(org, db = "Ensembl", release = NA, annotation_version =
     }
   }
 
-  if (db == "Ensembl") {
+  if (db == "Ensembl" & is_supported) {
     latest_annot <- fetch_latest_annotation(org)
     if (is.na(annotation_version)) {
       annotation_version = latest_annot
       print(paste0("Using latest annotation version : ", annotation_version))
     } else if (!is.numeric(annotation_version) & !is.na(annotation_version)) {
       stop("annotation_version must be a number")
-    } else if (annotation_version > latest_annot) {
-      stop("Annotation version not supported yet")
+    } else if (annotation_version > latest_annot & !is.na(annotation_version)) {
+      annotation_version = latest_annot
+      print(paste0("Annotation version not supported yet, using latest annotation version : "), annotation_version)
     }
+  }
+
+  if (!is.character(fasta) & !is.na(fasta)) {
+    stop("fasta must be NA or a string")
+  } else if (!is.na(fasta)) {
+    if (sum(unlist(lapply(c("fa", "fasta"), function(x) x %in% stringr::str_split_1(fasta, "\\.")))) == 0) {
+      stop("fasta must end with .fasta, .fa, .fa.gz or .fasta.gz")
+    }
+  }
+
+  if (is.na(fasta) & is.na(org)) {
+    stop("Must specify at least one of org and fasta")
   }
 
   if (!is.logical(ERCC92) | is.na(ERCC92)) {
@@ -160,33 +304,12 @@ prepare_anno <- function(org, db = "Ensembl", release = NA, annotation_version =
   } else {
     stop("outdir must be a string and a valid directory")
   }
+  return(list(org = org, db = db, release = release, annotation_version = annotation_version,
+              fasta = fasta, ERCC92 = ERCC92, standard_chr = standard_chr,
+              force_download = force_download, gtf = gtf, outdir = outdir, supported_org = is_supported, valid_org = is_valid_ensembl_org))
+}
 
-  # Download raw ref file
-  prefix <- get_prefix(org, db, release, annotation_version, outdir)
-
-  raw_ref_infos <- get_filename_and_url(org, db, release)
-  raw_ref_filename <- paste0(prefix, ".raw_ref.fa.gz")
-  if (!file.exists(raw_ref_filename) | force_download) {
-    download.file(raw_ref_infos$url, destfile = raw_ref_filename,
-                  method = "curl", extra = "-L")
-  }
-
-  gtf_filename <- paste0(prefix, ".gtf.gz")
-  if (gtf & (!file.exists(gtf_filename) | force_download)) {
-    gtf_url <- get_gtf_link(org, db, release)
-    download.file(gtf_url, destfile = gtf_filename,
-                  method = "curl", extra = "-L")
-  }
-  raw_ref_fasta <- Biostrings::readDNAStringSet(raw_ref_filename)
-  if (any(BiocGenerics::width(raw_ref_fasta) == 0)) {
-    stop("0 length transcripts in fasta file")
-  }
-
-  raw_ref_anno <- extract_anno(raw_ref_fasta, org, db, annotation_version)
-
-  # Get cleaned ref
-  ref_fasta <- raw_ref_fasta
-  anno <- raw_ref_anno
+clean_ref <- function(ref_fasta, db) {
   if (db == "Gencode") {
     clean_names <- stringr::str_extract(names(ref_fasta), "^ENS[^\\|]*")
     clean_names <- stringr::str_remove(clean_names, "\\.[0-9]*")
@@ -197,17 +320,10 @@ prepare_anno <- function(org, db = "Ensembl", release = NA, annotation_version =
   if (length(clean_names) != length(unique(clean_names))){
     stop("Duplicated transcripts in fasta")
   }
-  names(ref_fasta) <- clean_names
+  return(clean_names)
+}
 
-  if (ERCC92) {
-    ref_fasta <- add_ercc92_fasta(ref_fasta)
-    anno <- add_ercc92_anno(anno)
-  }
-
-  save_anno_resuts(ERCC92, prefix, "cleaned_ref", ref_fasta, anno)
-
-  # Get ref without alternative chromosomes
-  ref_fasta <- raw_ref_fasta
+no_alt_chr <- function(ref_fasta, db, org) {
   if (db == "Gencode") {
     ref_fasta <- ref_fasta[!stringr::str_detect(names(ref_fasta), "PAR_Y")]
   }
@@ -230,46 +346,23 @@ prepare_anno <- function(org, db = "Ensembl", release = NA, annotation_version =
     }
     ref_fasta <- ref_fasta[chromosomes %in% std_chr]
   }
-  names(ref_fasta) <- stringr::str_extract(names(ref_fasta), "^ENS[^\\.]*")
-
-  anno <- raw_ref_anno %>% dplyr::filter(id %in% names(ref_fasta))
-
-  if (ERCC92) {
-    anno <- add_ercc92_anno(anno)
-    ref_fasta <- add_ercc92_fasta(ref_fasta)
-  }
-
-  save_anno_resuts(ERCC92, prefix, "no_alt_chr", ref_fasta, anno)
-
-  # Get ref with only protein_coding genes
-  ref_fasta <- raw_ref_fasta[BiocGenerics::width(raw_ref_fasta) != 0]
-
-  names(ref_fasta) <- clean_names
-
-  i <- raw_ref_anno$transcript_type == "protein_coding"
-  anno <- raw_ref_anno[i,]
-  ref_fasta <- ref_fasta[i]
-
-  if (ERCC92) {
-    anno <- add_ercc92_anno(anno)
-    ref_fasta <- add_ercc92_fasta(ref_fasta)
-  }
-  save_anno_resuts(ERCC92, prefix, "protein_coding", ref_fasta, anno)
-
-  info <- save_info(prefix, org, db, release, ERCC92, raw_ref_infos, gtf, annotation_version)
-  info
+  return(ref_fasta)
 }
 
 get_prefix <- function(org, db, release, annotation_version, outdir){
+  if (is.na(org)) org = "unknown"
+  if (is.na(release)) release = "unknown"
+  if (is.na(annotation_version)) annotation_version = "unknown"
   organism = str_replace(org, " ", "_")
   prefix <- paste0(organism, ".", db, release)
   if (db == "Ensembl") {prefix <- paste(prefix, annotation_version, sep = "_")}
   paste(outdir, prefix, sep = "/")
 }
 
-get_filename_and_url <- function(org, db, release) {
-  stopifnot(org %in% c("Homo sapiens", "Mus musculus", "Macaca mulatta",
-                       "Rattus norvegicus", "Bos taurus", "Mesocricetus auratus"))
+get_filename_and_url <- function(org, db, release, is_valid) {
+  if (!is_valid) {stop("Not a valid organism")}
+  # stopifnot(org %in% c("Homo sapiens", "Mus musculus", "Macaca mulatta",
+  #                      "Rattus norvegicus", "Bos taurus", "Mesocricetus auratus"))
 
   stopifnot(db %in% c("Ensembl", "Gencode"))
   if (db == "Gencode") {
@@ -343,8 +436,63 @@ get_filename_and_url <- function(org, db, release) {
     filename <- "Mesocricetus_auratus.MesAur1.0.cdna.all.fa.gz"
     url <- paste0(base_url_ensembl, release, "/fasta/mesocricetus_auratus/cdna/",
                   filename)
+  } else {
+    # general download with grep "cdna.all.fa.gz"
+    low_org <- gsub(" ", "_", stringr::str_to_lower(org))
+    temp <- XML::getHTMLLinks(paste0(base_url_ensembl, release, "/fasta/", low_org, "/cdna/"))
+    filename <- grep("cdna.all.fa.gz", temp, value = TRUE)[1]
+    url <- paste0(base_url_ensembl, release, "/fasta/", low_org, "/cdna/", filename)
   }
   list(filename = filename, url = url)
+}
+
+extract_anno_bis <- function(raw_ref, org, db, annotation_version, valid_org) {
+  if (db == "Gencode") {
+    col_names <- c("id",
+                   "ensembl_gene",
+                   "havana_gene",
+                   "havana_transcript",
+                   "transcript_name",
+                   "symbol",
+                   "length",
+                   "transcript_type",
+                   "filler")
+
+    full_name <- NULL
+    df <- data.frame(full_name = names(raw_ref)) %>%
+      tidyr::separate(full_name, into = col_names, sep = "\\|") %>%
+      dplyr::mutate(id = stringr::str_replace(id, "\\.[0-9]*", ""),
+                    ensembl_gene = stringr::str_replace(ensembl_gene, "\\..*$", ""))
+    if (org == "Homo sapiens") org_db <- org.Hs.eg.db
+    if (org == "Mus musculus") org_db <- org.Mm.eg.db
+    df$entrez_id <- AnnotationDbi::mapIds(org_db,
+                                          keys = df$ensembl_gene,
+                                          keytype = "ENSEMBL",
+                                          column = "ENTREZID")
+    dplyr::select(df, id, ensembl_gene, symbol, entrez_id, transcript_type)
+  } else if (db == "Ensembl") {
+    df <- parse_fasta_names(raw_ref)
+    df$ids <- stringr::str_replace(df$ids, "\\.[0-9]*", "")
+    if (valid_org) {
+      hub <- AnnotationHub::AnnotationHub()
+      all_db <- AnnotationHub::query(hub, c(org, "EnsDb", annotation_version))
+      if (length(all_db) == 0){
+        stop("Unsupported annotation version")
+      }
+      db_name <- names(all_db@.db_uid[length(all_db)])
+      ensdb <- hub[[db_name]]
+    }
+
+
+    annot = data.frame(id = df$ids,
+                       ensembl_gene = df$gene,
+                       symbol = df$gene_symbol,
+                       entrez_id = if (valid_org) mapIds(ensdb, keys = df$ids, keytype = "TXID", column = "ENTREZID") else NA,
+                       transcript_type = df$transcript_biotype)
+  } else {
+    stop("Invalid db value")
+  }
+
 }
 
 extract_anno <- function(raw_ref, org, db, annotation_version) {
@@ -438,7 +586,7 @@ save_anno_resuts <- function(ERCC92, prefix, ref_type, ref_fasta, anno){
   }
 }
 
-save_info <- function(prefix, org, db, release, ERCC92, raw_ref_infos, gtf, annotation_version){
+save_info <- function(prefix, org, db, release, ERCC92, url, gtf, annotation_version, raw_ref){
   if (ERCC92){
     prefix <- paste(prefix, "ERCC92", sep = ".")
   }
@@ -451,8 +599,8 @@ save_info <- function(prefix, org, db, release, ERCC92, raw_ref_infos, gtf, anno
                      ERCC92 = ERCC92,
                      anno_pkg_version = packageVersion("anno"),
                      download_date = as.Date(Sys.Date(), format = "%B %d %Y"),
-                     download_url = raw_ref_infos$url,
-                     md5_raw_ref = tools::md5sum(paste0(prefix, ".raw_ref.fa.gz")),
+                     download_url = url,
+                     md5_raw_ref = tools::md5sum(raw_ref),
                      md5_cleaned_raw_ref = tools::md5sum(paste0(prefix, ".cleaned_ref.fa.gz")),
                      md5_no_alt_chr_ref = tools::md5sum(paste0(prefix, ".no_alt_chr.fa.gz")),
                      md5_protein_coding_ref = tools::md5sum(paste0(prefix, ".protein_coding.fa.gz")),
@@ -554,11 +702,30 @@ fetch_latest_release <- function(org, db){
                                    xpQuery = "//a/@href[contains(., 'release_M')]")
       versions = as.integer(gsub("[^0-9]*", "", versions))
     }
+    version = max(versions)
   } else {
     versions = XML::getHTMLLinks("http://ftp.ensembl.org/pub/", xpQuery = "//a/@href[contains(., 'release-')]")
     versions = as.integer(gsub("[^0-9]*", "", versions))
+    version = max(versions)
+    retry = TRUE
+    while(retry) {
+      if (version<100) {
+        stop(paste0("could not find a valid Ensembl version for organism "), org)
+      }
+      temp = XML::getHTMLLinks(paste0("http://ftp.ensembl.org/pub/release-", version, "/"))
+      if (length(grep("fasta", temp))>0) {
+        temp2 <- XML::getHTMLLinks(paste0("http://ftp.ensembl.org/pub/release-", version, "/fasta/"))
+        if (length(grep(gsub(" ", "_", stringr::str_to_lower(org)), temp2))>0) {
+          retry = FALSE
+        } else {
+          version = version-1
+        }
+      } else {
+        version = version-1
+      }
+    }
   }
-  max(versions)
+  version
 }
 
 fetch_latest_annotation <- function(org){
@@ -566,6 +733,15 @@ fetch_latest_annotation <- function(org){
   all_db <- AnnotationHub::query(hub, c(org, "EnsDb"))
   versions <- stringr::str_extract(all_db$title, "Ensembl [0-9]*") %>% stringr::str_remove("Ensembl ") %>% as.numeric
   max(versions)
+}
+
+fetch_ensembl_organism <- function(org, db, release){
+  if (is.na(release)) {
+    release = fetch_latest_release(org, db)
+  }
+  query_org = gsub(" ", "_", stringr::str_to_lower(org))
+  is_found <- length(grep(query_org, XML::getHTMLLinks(paste0("http://ftp.ensembl.org/pub/release-", release, "/fasta/")))) > 0
+  return(is_found)
 }
 
 read_fasta_to_biostrings <- function(path){

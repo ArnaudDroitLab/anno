@@ -102,6 +102,7 @@ prepare_anno <- function(org = NA, db = "Ensembl", release = NA, annotation_vers
   annotation_version = new_params[["annotation_version"]]
   valid_org = new_params[["valid_org"]]
   supported_org = new_params[["supported_org"]]
+  org = new_params[["org"]]
 
   # Download raw ref file
   prefix <- get_prefix(org, db, release, annotation_version, outdir)
@@ -145,10 +146,10 @@ prepare_anno <- function(org = NA, db = "Ensembl", release = NA, annotation_vers
   if (supported_org) {
     ref_fasta <- no_alt_chr(raw_ref_fasta, db, org)
     names(ref_fasta) <- clean_ref(ref_fasta, db)
-    anno <- raw_ref_anno %>% dplyr::filter(id %in% names(ref_fasta))
+    anno <- anno %>% dplyr::filter(id %in% names(ref_fasta))
 
     if (ERCC92) {
-      anno <- add_ercc92_anno(anno)
+      # anno <- add_ercc92_anno(anno)
       ref_fasta <- add_ercc92_fasta(ref_fasta)
     }
 
@@ -157,12 +158,14 @@ prepare_anno <- function(org = NA, db = "Ensembl", release = NA, annotation_vers
 
 
   # Get ref with only protein_coding genes
-  ref_fasta <- raw_ref_fasta[BiocGenerics::width(raw_ref_fasta) != 0]
+  if (!supported_org) {
+    ref_fasta <- raw_ref_fasta
+    names(ref_fasta) <- clean_names
+  }
+  ref_fasta <- ref_fasta[BiocGenerics::width(ref_fasta) != 0]
 
-  names(ref_fasta) <- clean_names
-
-  i <- raw_ref_anno$transcript_type == "protein_coding"
-  anno <- raw_ref_anno[i,]
+  i <- anno$transcript_type == "protein_coding"
+  anno <- anno[i,]
   ref_fasta <- ref_fasta[i]
 
   if (ERCC92) {
@@ -186,28 +189,30 @@ validate_params <- function(org, db, release, annotation_version, fasta, ERCC92,
   is_valid_ensembl_org = FALSE
   if (!is.character(org) & !is.na(org)) {
     stop("org must be NA or a supported organism")
-  } else if (tolower(org) %in% c("homo sapiens", "human", "grch38", "hg38", "hs", "h. sapiens")) {
-    org = "Homo sapiens"
+  }
+  org = tolower(org)
+  if (tolower(org) %in% c("homo sapiens", "human", "grch38", "hg38", "hs", "h. sapiens", "homo_sapiens")) {
+    org = "homo_sapiens"
     is_supported = TRUE
     is_valid_ensembl_org = TRUE
-  } else if (tolower(org) %in% c("mus musculus", "mouse", "grcm38", "mm10", "mm", "grcm39", "mm39", "m. musculus")) {
-    org = "Mus musculus"
+  } else if (tolower(org) %in% c("mus musculus", "mouse", "grcm38", "mm10", "mm", "grcm39", "mm39", "m. musculus", "mus_musculus")) {
+    org = "mus_musculus"
     is_supported = TRUE
     is_valid_ensembl_org = TRUE
-  } else if (tolower(org) %in% c("macaca mulatta", "rhesus monkey", "mmul_10", "rhemac10", "mmu", "m. mulatta")) {
-    org = "Macaca mulatta"
+  } else if (tolower(org) %in% c("macaca mulatta", "rhesus monkey", "mmul_10", "rhemac10", "mmu", "m. mulatta", "macaca_mulatta")) {
+    org = "macaca_mulatta"
     is_supported = TRUE
     is_valid_ensembl_org = TRUE
-  } else if (tolower(org) %in% c("rattus norvegicus", "rat", "rrnor_6.0", "rn6", "rn", "r. norvegicus")) {
-    org = "Rattus norvegicus"
+  } else if (tolower(org) %in% c("rattus norvegicus", "rat", "rrnor_6.0", "rn6", "rn", "r. norvegicus", "rattus_norvegicus")) {
+    org = "rattus_norvegicus"
     is_supported = TRUE
     is_valid_ensembl_org = TRUE
-  } else if (tolower(org) %in% c("bos taurus", "cow", "bos_taurus_umd_3.1.1", "bt", "b. taurus")) {
-    org = "Bos taurus"
+  } else if (tolower(org) %in% c("bos taurus", "cow", "bos_taurus_umd_3.1.1", "bt", "b. taurus", "bos_taurus")) {
+    org = "bos_taurus"
     is_supported = TRUE
     is_valid_ensembl_org = TRUE
-  } else if (tolower(org) %in% c("mesocricetus auratus", "hamster", "mesaur1.0", "ma", "m. auratus")) {
-    org = "Mesocricetus auratus"
+  } else if (tolower(org) %in% c("mesocricetus auratus", "hamster", "mesaur1.0", "ma", "m. auratus", "mesocricetus_auratus")) {
+    org = "mesocricetus_auratus"
     is_supported = TRUE
     is_valid_ensembl_org = TRUE
   } else if (!is.na(org)) {
@@ -222,8 +227,11 @@ validate_params <- function(org, db, release, annotation_version, fasta, ERCC92,
     } else if (db == "Ensembl" & !is.na(fasta)) {
       print(paste0(org, " is an unsupported organism, fasta has been provided and genome will not be downloaded"))
     }
-  } else {
+  }
+  if (is.na(org)) {
     print("organism is NA, a fasta must be provided and ENTREZID will be skipped")
+  } else {
+    org = gsub("_", " ", stringr::str_to_sentence(org))
   }
 
   if (db == "Gencode" & !org %in% c("Homo sapiens", "Mus musculus")) {
